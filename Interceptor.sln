@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Interceptor", "Interceptor\Interceptor.vcxproj", "{6F7768BE-6E77-4030-B106-A4428A3B087A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InterceptorTest", "InterceptorTest\InterceptorTest.vcxproj", "{665D3EAA-DC5F-4DB3-9379-ABD8F18B6C13}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6F7768BE-6E77-4030-B106-A4428A3B087A} = {6F7768BE-6E77-4030-B106-A4428A3B087A}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

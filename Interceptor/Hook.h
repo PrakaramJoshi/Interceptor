@@ -1,7 +1,7 @@
 #pragma once
 #ifdef _WIN64
-extern "C" void _penter();
-extern "C" void _pexit();
+//extern "C" void _penter();
+//extern "C" void _pexit();
 #else
 extern "C" void __declspec(naked) _cdecl _penter(void) {
 	_asm
