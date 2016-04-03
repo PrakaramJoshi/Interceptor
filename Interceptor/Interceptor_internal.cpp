@@ -4,7 +4,6 @@ using namespace Interceptor;
 
 Interceptor_Internal::Interceptor_Internal() {
 	m_bInitResult = FALSE;
-	m_dwBaseAddr = 0;
 	m_current_process = 0;
 	m_mutex_available = true;
 #ifdef UNICODE
@@ -132,7 +131,6 @@ void Interceptor_Internal::init_internal(void *_pAddress) {
 	TCHAR modShortNameBuf[MAX_PATH];
 	MEMORY_BASIC_INFORMATION mbi;
 	m_current_process = GetCurrentProcess();
-
 	//Get the module name where the address is available
 	VirtualQuery((void*)_pAddress, &mbi, sizeof(mbi));
 	GetModuleFileName((HMODULE)mbi.AllocationBase,
@@ -140,33 +138,6 @@ void Interceptor_Internal::init_internal(void *_pAddress) {
 
 	//Initialize the symbols
 	m_bInitResult = SymInitializeEncoded(m_current_process, moduleName, TRUE);
-#ifdef UNICODE
-	wchar_t *orig = moduleName;
-	// Convert to a char*
-	size_t origsize = wcslen(moduleName) + 1;
-
-	size_t convertedChars = 0;
-	char nstring[MAX_PATH];
-	wcstombs_s(&convertedChars, nstring, origsize, orig, _TRUNCATE);
-	//Load the module
-	m_dwBaseAddr = SymLoadModuleEx(m_current_process,
-		NULL,
-		(PCSTR)nstring,
-		NULL,
-		(DWORD64)0,
-		0,
-		NULL,
-		0);
-#else
-	m_dwBaseAddr = SymLoadModuleEx(m_current_process,
-		NULL,
-		(PCSTR)moduleName,
-		NULL,
-		(DWORD64)0,
-		0,
-		NULL,
-		0);
-#endif
 
 	//Set the options
 	SymSetOptions(SymGetOptions()   &~SYMOPT_UNDNAME);
@@ -175,40 +146,38 @@ void Interceptor_Internal::init_internal(void *_pAddress) {
 STD_STRING Interceptor_Internal::get_function_name_internal(void *_pa) {
 	DWORD64 symDisplacement = 0;
 	STD_STRING func_name = INIT_STR;
-	if (m_dwBaseAddr) {
-		//Allocate the memory for PSYMBOL_INFO
-		//Get the name of the symbol using the address
-		enum { MAX_SYMBOL_BUF_NAME_LENGTH = MAX_SYM_NAME };
-		enum {
-			SIZEOF_SEGMENT = sizeof(IMAGEHLP_SYMBOL64) +
-			MAX_SYMBOL_BUF_NAME_LENGTH * sizeof(TCHAR)
-		};
+	//Allocate the memory for PSYMBOL_INFO
+	//Get the name of the symbol using the address
+	enum { MAX_SYMBOL_BUF_NAME_LENGTH = MAX_SYM_NAME };
+	enum {
+		SIZEOF_SEGMENT = sizeof(IMAGEHLP_SYMBOL64) +
+		MAX_SYMBOL_BUF_NAME_LENGTH * sizeof(TCHAR)
+	};
 
 
-		TCHAR  buffer[SIZEOF_SEGMENT];
-		memset(&buffer, 0, sizeof(buffer));
+	TCHAR  buffer[SIZEOF_SEGMENT];
+	memset(&buffer, 0, sizeof(buffer));
 
-		SYMBOL_INFO_ENCODED *pSymbolInfo = (SYMBOL_INFO_ENCODED *)buffer;
-		pSymbolInfo->SizeOfStruct = sizeof(SYMBOL_INFO_ENCODED);
+	SYMBOL_INFO_ENCODED *pSymbolInfo = (SYMBOL_INFO_ENCODED *)buffer;
+	pSymbolInfo->SizeOfStruct = sizeof(SYMBOL_INFO_ENCODED);
 #ifdef _WIN64
-		pSymbolInfo->MaxNameLength = MAX_SYMBOL_BUF_NAME_LENGTH;
+	pSymbolInfo->MaxNameLength = MAX_SYMBOL_BUF_NAME_LENGTH;
 #else
-		pSymbolInfo->MaxNameLen = MAX_SYMBOL_BUF_NAME_LENGTH;
+	pSymbolInfo->MaxNameLen = MAX_SYMBOL_BUF_NAME_LENGTH;
 #endif
 
-		BOOL bResult = FALSE;
-		bResult = SymFromAddrEncoded(m_current_process, (DWORD64)_pa, &symDisplacement, pSymbolInfo);
-		if (bResult) {
-			auto p = pSymbolInfo->Name;
-			while ((*p < 32) || (*p > 127))  // skip any strange characters at the beginning of the symbol name
-			{
-				p++;
-			}
-			func_name = STD_STRING(p);
+	BOOL bResult = FALSE;
+	bResult = SymFromAddrEncoded(m_current_process, (DWORD64)_pa, &symDisplacement, pSymbolInfo);
+	if (bResult) {
+		auto p = pSymbolInfo->Name;
+		while ((*p < 32) || (*p > 127))  // skip any strange characters at the beginning of the symbol name
+		{
+			p++;
 		}
-		else {
+		func_name = STD_STRING(p);
+	}
+	else {
 
-		}
 	}
 	return func_name;
 }

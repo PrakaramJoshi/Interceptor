@@ -18,9 +18,6 @@ namespace Interceptor {
 		// Flag to indicate the result of symbol initialization
 		BOOL	m_bInitResult;
 
-		//Base address of the loaded module
-		DWORD64  m_dwBaseAddr;
-
 		HANDLE m_current_process;
 
 		FuntionDepth m_function_call_depth;
