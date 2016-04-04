@@ -90,6 +90,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;INTERCEPTOR_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>.;./CallGraphRecorder</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -106,6 +107,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;INTERCEPTOR_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <OmitFramePointers>false</OmitFramePointers>
+      <AdditionalIncludeDirectories>.;./CallGraphRecorder</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -131,6 +133,7 @@
       <SDLCheck>true</SDLCheck>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <AdditionalIncludeDirectories>.;./CallGraphRecorder</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -157,6 +160,7 @@
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <OmitFramePointers>false</OmitFramePointers>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <AdditionalIncludeDirectories>.;./CallGraphRecorder</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -175,7 +179,9 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CallGraphRecorder.h" />
+    <ClInclude Include="CallGraphRecorder\CallGraphHTML.h" />
+    <ClInclude Include="CallGraphRecorder\CallGraphRecorder.h" />
+    <ClInclude Include="CallGraphRecorder\CallStackRecord.h" />
     <ClInclude Include="FunctionDepth.h" />
     <ClInclude Include="Hook.h" />
     <ClInclude Include="Interceptor.h" />
@@ -185,7 +191,8 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CallGraphRecorder.cpp" />
+    <ClCompile Include="CallGraphRecorder\CallGraphRecorder.cpp" />
+    <ClCompile Include="CallGraphRecorder\CallStackRecord.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

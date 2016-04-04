@@ -6,6 +6,7 @@ Interceptor_Internal::Interceptor_Internal() {
 	m_bInitResult = FALSE;
 	m_current_process = 0;
 	m_mutex_available = true;
+	m_interceptor_mode = InterceptorMode::CALL_DIAGRAM;
 #ifdef UNICODE
 #ifdef _WIN64
 	m_DisabledStuffStr.push_back("std::");
@@ -30,6 +31,15 @@ Interceptor_Internal::~Interceptor_Internal() {
 	if (!m_mutex_available)
 		return;
 	m_called_func_mutex.lock();
+	switch (m_interceptor_mode) {
+		case Interceptor::InterceptorMode::IMMEDIATE_PRINT:
+			break;
+		case Interceptor::InterceptorMode::CALL_DIAGRAM:
+			m_call_graph_recorder.create_call_chart();
+			break;
+		default:
+			break;
+	}
 	m_mutex_available = false;
 	m_called_func_mutex.unlock();
 }
@@ -43,10 +53,6 @@ void Interceptor_Internal::init(void *_pAddress) {
 	Interceptor_Internal::get().init_internal(_pAddress);
 }
 
-STD_STRING Interceptor_Internal::get_function_name(void *_pa) {
-	return Interceptor_Internal::get().get_function_name_internal(_pa);
-}
-
 void Interceptor_Internal::on_enter(void *_pa) {
 	Interceptor_Internal::get().on_enter_internal(_pa);
 }
@@ -55,21 +61,48 @@ void Interceptor_Internal::on_exit(void *_pa) {
 	Interceptor_Internal::get().on_exit_internal(_pa);
 }
 
+void Interceptor_Internal::on_enter_immediate_print_mode(const STD_STRING &_fn_name) {
+	auto current_depth = (++m_function_call_depth);
+	print_to_console(current_depth, _fn_name, true);
+}
+
+void Interceptor_Internal::on_exit_immediate_print_mode(const STD_STRING &_fn_name) {
+	auto current_depth = m_function_call_depth.load();
+	--m_function_call_depth;
+	print_to_console(current_depth, _fn_name, false);
+}
+
+void Interceptor_Internal::on_enter_call_diagram_mode(const STD_STRING &_fn_name) {
+	m_call_graph_recorder.record(_fn_name);
+}
+
+void Interceptor_Internal::on_exit_call_diagram_mode(const STD_STRING &_fn_name) {
+	m_call_graph_recorder.record(_fn_name,CALL_STATUS::CALL_OUT);
+}
+
 void Interceptor_Internal::on_enter_internal(void *_pa) {
 	if (!m_mutex_available)
 		return;
 	m_called_func_mutex.lock();
-	auto current_depth = (++m_function_call_depth);
 	auto iter = m_function_name_cache.find(_pa);
 	STD_STRING fn;
 	if (iter == m_function_name_cache.end()) {
-		fn = Interceptor::Interceptor_Internal::get_function_name(_pa);
+		fn = get_function_name_internal(_pa);
 		m_function_name_cache[_pa] = fn;
 	}
 	else {
 		fn = iter->second;
 	}
-	print_to_console(current_depth, fn, true);
+	switch (m_interceptor_mode) {
+		case Interceptor::InterceptorMode::IMMEDIATE_PRINT:
+			on_enter_immediate_print_mode(fn);
+			break;
+		case Interceptor::InterceptorMode::CALL_DIAGRAM:
+			on_enter_call_diagram_mode(fn);
+			break;
+		default:
+			break;
+	}
 	m_called_func_mutex.unlock();
 }
 
@@ -77,18 +110,26 @@ void Interceptor_Internal::on_exit_internal(void *_pa) {
 	if (!m_mutex_available)
 		return;
 	m_called_func_mutex.lock();
-	auto current_depth = m_function_call_depth.load();
-	--m_function_call_depth;
+	
 	STD_STRING fn;
 	auto iter = m_function_name_cache.find(_pa);
 	if (iter == m_function_name_cache.end()) {
-		fn = Interceptor::Interceptor_Internal::get_function_name(_pa);
+		fn = get_function_name_internal(_pa);
 		m_function_name_cache[_pa] = fn;
 	}
 	else {
 		fn = iter->second;
 	}
-	print_to_console(current_depth, fn, false);
+	switch (m_interceptor_mode) {
+		case Interceptor::InterceptorMode::IMMEDIATE_PRINT:
+			on_exit_immediate_print_mode(fn);
+			break;
+		case Interceptor::InterceptorMode::CALL_DIAGRAM:
+			on_exit_call_diagram_mode(fn);
+			break;
+		default:
+			break;
+	}
 	m_called_func_mutex.unlock();
 	
 }
@@ -99,7 +140,7 @@ void Interceptor_Internal::print_to_console(const std::size_t &_stack_depth,
 	if (_function_name.empty())
 		return;
 	for (auto &_disbled_stuff : m_DisabledStuffStr) {
-		if (_function_name.find(_disbled_stuff) != std::string::npos) {
+		if (_function_name.find(_disbled_stuff) != STRING_NFOUND) {
 			return;
 		}
 	}

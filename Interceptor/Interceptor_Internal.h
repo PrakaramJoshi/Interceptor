@@ -7,6 +7,8 @@
 #include <vector>
 #include <atomic>
 namespace Interceptor {
+	enum class InterceptorMode {IMMEDIATE_PRINT,CALL_DIAGRAM};
+
 	class Interceptor_Internal {
 
 		Interceptor_Internal(const Interceptor_Internal&)			= delete;
@@ -22,7 +24,7 @@ namespace Interceptor {
 
 		FuntionDepth m_function_call_depth;
 
-		std::vector<CallGraphRecorder> m_called_functions;
+		CallGraphRecorder m_call_graph_recorder;
 
 		std::mutex m_called_func_mutex;
 
@@ -32,9 +34,19 @@ namespace Interceptor {
 
 		std::atomic<bool> m_mutex_available;
 
+		InterceptorMode m_interceptor_mode;
+
 		void init_internal(void *_pAddress);
 
 		STD_STRING get_function_name_internal(void *_pa);
+
+		void on_enter_immediate_print_mode(const STD_STRING &_fn_name);
+
+		void on_exit_immediate_print_mode(const STD_STRING &_fn_name);
+
+		void on_enter_call_diagram_mode(const STD_STRING &_fn_name);
+
+		void on_exit_call_diagram_mode(const STD_STRING &_fn_name);
 
 		void on_enter_internal(void *_pa);
 
@@ -49,8 +61,6 @@ namespace Interceptor {
 		~Interceptor_Internal();
 
 		static void init(void *_pAddress);
-		
-		static STD_STRING get_function_name(void *_pa);
 
 		static void on_enter(void *_pa);
 

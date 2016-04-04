@@ -30,9 +30,6 @@
     <ClInclude Include="FunctionDepth.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CallGraphRecorder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="InterceptorConfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -40,6 +37,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Hook.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CallGraphRecorder\CallGraphRecorder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CallGraphRecorder\CallStackRecord.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CallGraphRecorder\CallGraphHTML.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -56,10 +62,13 @@
     <ClCompile Include="FunctionDepth.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CallGraphRecorder.cpp">
+    <ClCompile Include="Interceptor_internal.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Interceptor_internal.cpp">
+    <ClCompile Include="CallGraphRecorder\CallGraphRecorder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CallGraphRecorder\CallStackRecord.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -4,7 +4,7 @@
 #include "stdafx.h"
 #include <thread>
 #include <future>
-
+#include <iostream>
 extern "C" void _penter();
 extern "C" void _pexit();
 
