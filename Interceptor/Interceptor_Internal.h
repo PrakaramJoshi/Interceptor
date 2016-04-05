@@ -1,14 +1,15 @@
 #pragma once
-#include "InterceptorConfig.h"
-#include "FunctionDepth.h"
 #include "CallGraphRecorder.h"
+#include "FunctionDepth.h"
+#include "InterceptorConfig.h"
+
 #include <map>
 #include <mutex>
 #include <vector>
 #include <atomic>
+#include <Windows.h>
 namespace Interceptor {
-	enum class InterceptorMode {IMMEDIATE_PRINT,CALL_DIAGRAM};
-
+	
 	class Interceptor_Internal {
 
 		Interceptor_Internal(const Interceptor_Internal&)			= delete;
@@ -28,31 +29,33 @@ namespace Interceptor {
 
 		std::mutex m_called_func_mutex;
 
-		std::map<void*, STD_STRING> m_function_name_cache;
+		std::mutex m_print_mutex;
 
-		std::vector<STD_STRING> m_DisabledStuffStr;
+		std::map<void*, std::string> m_function_name_cache;
 
 		std::atomic<bool> m_mutex_available;
 
-		InterceptorMode m_interceptor_mode;
+		const InterceptorConfiguration m_configuration;
 
 		void init_internal(void *_pAddress);
 
-		STD_STRING get_function_name_internal(void *_pa);
+		std::string get_function_name_from_symbols_library(void *_pa);
 
-		void on_enter_immediate_print_mode(const STD_STRING &_fn_name);
+		std::string get_function_name_internal(void *_pa);
 
-		void on_exit_immediate_print_mode(const STD_STRING &_fn_name);
+		void on_enter_immediate_print_mode(void *_pa);
 
-		void on_enter_call_diagram_mode(const STD_STRING &_fn_name);
+		void on_exit_immediate_print_mode(void *_pa);
 
-		void on_exit_call_diagram_mode(const STD_STRING &_fn_name);
+		void on_enter_call_diagram_mode(void *_pa);
+
+		void on_exit_call_diagram_mode(void *_pa);
 
 		void on_enter_internal(void *_pa);
 
 		void on_exit_internal(void *_pa);
 
-		void print_to_console(const std::size_t &_stack_depth, const STD_STRING &_function_name, bool _in);
+		void print_to_console(const std::size_t &_stack_depth, const std::string &_function_name, bool _in);
 
 		static Interceptor_Internal& get();
 

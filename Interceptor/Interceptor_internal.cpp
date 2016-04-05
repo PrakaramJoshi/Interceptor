@@ -1,37 +1,26 @@
 #include "stdafx.h"
 #include "Interceptor_Internal.h"
+#include "CallStackUtils.h"
+#include <imagehlp.h>
+#include <iostream>
+#include <string>
+#include <strsafe.h>
+
 using namespace Interceptor;
 
 Interceptor_Internal::Interceptor_Internal() {
 	m_bInitResult = FALSE;
 	m_current_process = 0;
-	m_mutex_available = true;
-	m_interceptor_mode = InterceptorMode::CALL_DIAGRAM;
-#ifdef UNICODE
-#ifdef _WIN64
-	m_DisabledStuffStr.push_back("std::");
-	m_DisabledStuffStr.push_back("Concurrency::");
-	m_DisabledStuffStr.push_back("<lambda_");
-	m_DisabledStuffStr.push_back("operator new");
-#else
-	m_DisabledStuffStr.push_back(L"std::");
-	m_DisabledStuffStr.push_back(L"Concurrency::");
-	m_DisabledStuffStr.push_back(L"<lambda_");
-	m_DisabledStuffStr.push_back(L"operator new");
-#endif
-#else
-	m_DisabledStuffStr.push_back("std::");
-	m_DisabledStuffStr.push_back("Concurrency::");
-	m_DisabledStuffStr.push_back("<lambda_");
-	m_DisabledStuffStr.push_back("operator new");
-#endif
+	m_mutex_available = true;	
 }
 
 Interceptor_Internal::~Interceptor_Internal() {
 	if (!m_mutex_available)
 		return;
-	m_called_func_mutex.lock();
-	switch (m_interceptor_mode) {
+	SLOCK(m_called_func_mutex)
+	SLOCK(m_print_mutex)
+	m_mutex_available = false;
+	switch (m_configuration.p_mode) {
 		case Interceptor::InterceptorMode::IMMEDIATE_PRINT:
 			break;
 		case Interceptor::InterceptorMode::CALL_DIAGRAM:
@@ -40,8 +29,6 @@ Interceptor_Internal::~Interceptor_Internal() {
 		default:
 			break;
 	}
-	m_mutex_available = false;
-	m_called_func_mutex.unlock();
 }
 
 Interceptor_Internal& Interceptor_Internal::get() {
@@ -61,102 +48,83 @@ void Interceptor_Internal::on_exit(void *_pa) {
 	Interceptor_Internal::get().on_exit_internal(_pa);
 }
 
-void Interceptor_Internal::on_enter_immediate_print_mode(const STD_STRING &_fn_name) {
+void Interceptor_Internal::on_enter_immediate_print_mode(void *_pa) {
+	auto fn_name = get_function_name_internal(_pa);
 	auto current_depth = (++m_function_call_depth);
-	print_to_console(current_depth, _fn_name, true);
+	print_to_console(current_depth, fn_name, true);
 }
 
-void Interceptor_Internal::on_exit_immediate_print_mode(const STD_STRING &_fn_name) {
+void Interceptor_Internal::on_exit_immediate_print_mode(void *_pa) {
+	auto fn_name = get_function_name_internal(_pa);
 	auto current_depth = m_function_call_depth.load();
 	--m_function_call_depth;
-	print_to_console(current_depth, _fn_name, false);
+	print_to_console(current_depth, fn_name, false);
 }
 
-void Interceptor_Internal::on_enter_call_diagram_mode(const STD_STRING &_fn_name) {
-	m_call_graph_recorder.record(_fn_name);
+void Interceptor_Internal::on_enter_call_diagram_mode(void *_pa) {
+	auto fn_name = get_function_name_internal(_pa);
+	m_call_graph_recorder.record(fn_name);
 }
 
-void Interceptor_Internal::on_exit_call_diagram_mode(const STD_STRING &_fn_name) {
-	m_call_graph_recorder.record(_fn_name,CALL_STATUS::CALL_OUT);
+void Interceptor_Internal::on_exit_call_diagram_mode(void *_pa) {
+	auto fn_name = get_function_name_internal(_pa);
+	m_call_graph_recorder.record(fn_name,CALL_STATUS::CALL_OUT);
 }
 
 void Interceptor_Internal::on_enter_internal(void *_pa) {
 	if (!m_mutex_available)
 		return;
-	m_called_func_mutex.lock();
-	auto iter = m_function_name_cache.find(_pa);
-	STD_STRING fn;
-	if (iter == m_function_name_cache.end()) {
-		fn = get_function_name_internal(_pa);
-		m_function_name_cache[_pa] = fn;
-	}
-	else {
-		fn = iter->second;
-	}
-	switch (m_interceptor_mode) {
+	switch (m_configuration.p_mode) {
 		case Interceptor::InterceptorMode::IMMEDIATE_PRINT:
-			on_enter_immediate_print_mode(fn);
+			on_enter_immediate_print_mode(_pa);
 			break;
 		case Interceptor::InterceptorMode::CALL_DIAGRAM:
-			on_enter_call_diagram_mode(fn);
+			on_enter_call_diagram_mode(_pa);
 			break;
 		default:
 			break;
 	}
-	m_called_func_mutex.unlock();
 }
 
 void Interceptor_Internal::on_exit_internal(void *_pa) {
 	if (!m_mutex_available)
 		return;
-	m_called_func_mutex.lock();
-	
-	STD_STRING fn;
-	auto iter = m_function_name_cache.find(_pa);
-	if (iter == m_function_name_cache.end()) {
-		fn = get_function_name_internal(_pa);
-		m_function_name_cache[_pa] = fn;
-	}
-	else {
-		fn = iter->second;
-	}
-	switch (m_interceptor_mode) {
+	switch (m_configuration.p_mode) {
 		case Interceptor::InterceptorMode::IMMEDIATE_PRINT:
-			on_exit_immediate_print_mode(fn);
+			on_exit_immediate_print_mode(_pa);
 			break;
 		case Interceptor::InterceptorMode::CALL_DIAGRAM:
-			on_exit_call_diagram_mode(fn);
+			on_exit_call_diagram_mode(_pa);
 			break;
 		default:
 			break;
-	}
-	m_called_func_mutex.unlock();
-	
+	}	
 }
 
 void Interceptor_Internal::print_to_console(const std::size_t &_stack_depth,
-											const STD_STRING &_function_name, 
+											const std::string &_function_name, 
 											bool _in) {
 	if (_function_name.empty())
 		return;
-	for (auto &_disbled_stuff : m_DisabledStuffStr) {
-		if (_function_name.find(_disbled_stuff) != STRING_NFOUND) {
+	for (auto &_disbled_stuff : m_configuration.p_disabled_stuff) {
+		if (_function_name.find(_disbled_stuff) != std::string::npos) {
 			return;
 		}
 	}
-	STD_STRING out_str = INIT_STR;
+	std::string out_str = "";
 	for (auto i = _stack_depth; i > 0; i--) {
-		APPENDSTR(out_str);
+		out_str.append("-");
 	}
 	out_str.append(_function_name);
 
+	SLOCK(m_print_mutex)
 	if (_in) {
-		CONSOLE_OUT << "(in  ";
+		std::cout << "(in  ";
 	}
 	else {
-		CONSOLE_OUT << "(out ";
+		std::cout << "(out ";
 	}
-	CONSOLE_OUT << _stack_depth << 
+	std::cout << _stack_depth << 
 				", Thread: " << 
 				std::this_thread::get_id() << 
 				")" << 
@@ -168,57 +136,87 @@ void Interceptor_Internal::init_internal(void *_pAddress) {
 	if (m_bInitResult)
 		return;
 	//Query the memory
-	char_type moduleName[MAX_PATH];
-	TCHAR modShortNameBuf[MAX_PATH];
+	char moduleName[MAX_PATH];
 	MEMORY_BASIC_INFORMATION mbi;
 	m_current_process = GetCurrentProcess();
 	//Get the module name where the address is available
 	VirtualQuery((void*)_pAddress, &mbi, sizeof(mbi));
-	GetModuleFileName((HMODULE)mbi.AllocationBase,
+	GetModuleFileNameA((HMODULE)mbi.AllocationBase,
 		moduleName, MAX_PATH);
 
 	//Initialize the symbols
-	m_bInitResult = SymInitializeEncoded(m_current_process, moduleName, TRUE);
+	m_bInitResult = SymInitialize(m_current_process, moduleName, TRUE);
 
 	//Set the options
 	SymSetOptions(SymGetOptions()   &~SYMOPT_UNDNAME);
 }
+int filter(unsigned int code, struct _EXCEPTION_POINTERS *ep) {
 
-STD_STRING Interceptor_Internal::get_function_name_internal(void *_pa) {
-	DWORD64 symDisplacement = 0;
-	STD_STRING func_name = INIT_STR;
-	//Allocate the memory for PSYMBOL_INFO
-	//Get the name of the symbol using the address
-	enum { MAX_SYMBOL_BUF_NAME_LENGTH = MAX_SYM_NAME };
-	enum {
-		SIZEOF_SEGMENT = sizeof(IMAGEHLP_SYMBOL64) +
-		MAX_SYMBOL_BUF_NAME_LENGTH * sizeof(TCHAR)
+	if (code == EXCEPTION_ACCESS_VIOLATION) {
+
+		puts("caught AV as expected.");
+
+		return EXCEPTION_CONTINUE_EXECUTION;
+
+	}
+
+	else {
+
+		puts("didn't catch AV, unexpected.");
+
+		return EXCEPTION_CONTINUE_EXECUTION;
+
 	};
-
-
-	TCHAR  buffer[SIZEOF_SEGMENT];
-	memset(&buffer, 0, sizeof(buffer));
-
-	SYMBOL_INFO_ENCODED *pSymbolInfo = (SYMBOL_INFO_ENCODED *)buffer;
-	pSymbolInfo->SizeOfStruct = sizeof(SYMBOL_INFO_ENCODED);
-#ifdef _WIN64
-	pSymbolInfo->MaxNameLength = MAX_SYMBOL_BUF_NAME_LENGTH;
-#else
-	pSymbolInfo->MaxNameLen = MAX_SYMBOL_BUF_NAME_LENGTH;
-#endif
-
+}
+BOOL get_sym_name(HANDLE _handle,void *_pa, SYMBOL_INFO &_symbol) {
+	__try {
+		if (::SymFromAddr(_handle, reinterpret_cast<DWORD64>(_pa), 0, &_symbol)) {
+			return TRUE;
+		}
+		return FALSE;
+	}
+	__except (filter(GetExceptionCode(), GetExceptionInformation())) {
+		return FALSE;
+	}
+	return FALSE;
+}
+std::string Interceptor_Internal::get_function_name_from_symbols_library(void *_pa) {
+	
+	std::string func_name = "";
 	BOOL bResult = FALSE;
-	bResult = SymFromAddrEncoded(m_current_process, (DWORD64)_pa, &symDisplacement, pSymbolInfo);
+	const size_t max_name_length = MAX_SYM_NAME;
+	SYMBOL_INFO dummy;
+	char buffer2[sizeof(SYMBOL_INFO) + max_name_length * sizeof(dummy.Name[0])] = { 0 };
+	SYMBOL_INFO &symbol = *reinterpret_cast<SYMBOL_INFO *>(buffer2);
+
+	symbol.SizeOfStruct = sizeof(SYMBOL_INFO);
+	symbol.MaxNameLen = max_name_length;
+	bResult = get_sym_name(m_current_process, _pa, symbol);
+
 	if (bResult) {
-		auto p = pSymbolInfo->Name;
+		auto p = symbol.Name;
 		while ((*p < 32) || (*p > 127))  // skip any strange characters at the beginning of the symbol name
 		{
 			p++;
 		}
-		func_name = STD_STRING(p);
-	}
-	else {
-
+		func_name = std::string(p);
 	}
 	return func_name;
+}
+
+std::string Interceptor_Internal::get_function_name_internal(void *_pa) {
+	std::string fn = "";
+	SLOCK(m_called_func_mutex)
+	auto iter = m_function_name_cache.find(_pa);
+	if (iter == m_function_name_cache.end()) {
+		fn = get_function_name_from_symbols_library(_pa);
+		if (m_configuration.p_function_names == FunctionNames::NORMALIZED) {
+			fn = Utils::get_normalized_function_name(fn);
+		}
+		m_function_name_cache[_pa] = fn;
+	}
+	else {
+		fn = iter->second;
+	}
+	return fn;
 }

@@ -34,7 +34,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
     <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -42,7 +42,7 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -161,6 +161,8 @@
       <OmitFramePointers>false</OmitFramePointers>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <AdditionalIncludeDirectories>.;./CallGraphRecorder</AdditionalIncludeDirectories>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <AdditionalOptions>/EHar %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -182,6 +184,7 @@
     <ClInclude Include="CallGraphRecorder\CallGraphHTML.h" />
     <ClInclude Include="CallGraphRecorder\CallGraphRecorder.h" />
     <ClInclude Include="CallGraphRecorder\CallStackRecord.h" />
+    <ClInclude Include="CallGraphRecorder\CallStackUtils.h" />
     <ClInclude Include="FunctionDepth.h" />
     <ClInclude Include="Hook.h" />
     <ClInclude Include="Interceptor.h" />
@@ -193,6 +196,7 @@
   <ItemGroup>
     <ClCompile Include="CallGraphRecorder\CallGraphRecorder.cpp" />
     <ClCompile Include="CallGraphRecorder\CallStackRecord.cpp" />
+    <ClCompile Include="CallGraphRecorder\CallStackUtils.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

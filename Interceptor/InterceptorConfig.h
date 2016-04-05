@@ -1,61 +1,37 @@
 #pragma once
-// Unicode ,multi byte , 32-bit, 64 bit configuration
-#include <windows.h>
-#include <imagehlp.h>
-#include <strsafe.h>
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#ifdef  UNICODE
-	typedef wchar_t char_type;
-	#define SymInitializeEncoded SymInitializeW
-	#ifdef _WIN64
-		#define UnDecorateSymbolNameEncoded UnDecorateSymbolName
-		typedef IMAGEHLP_SYMBOL64 SYMBOL_INFO_ENCODED;
-		#define SymFromAddrEncoded SymGetSymFromAddr
-	#else
-		#define USING_WSTRING
-		#define UnDecorateSymbolNameEncoded UnDecorateSymbolNameW
-		typedef SYMBOL_INFOW SYMBOL_INFO_ENCODED;
-		#define SymFromAddrEncoded SymFromAddrW
-		
-	#endif
-#else
-	typedef char char_type;
-	#define SymInitializeEncoded SymInitialize
-	#ifdef _WIN64
-		typedef IMAGEHLP_SYMBOL64 SYMBOL_INFO_ENCODED;
-		#define SymFromAddrEncoded SymGetSymFromAddr
-	#else
-		typedef SYMBOL_INFO SYMBOL_INFO_ENCODED;
-		#define SymFromAddrEncoded SymFromAddr
-	#endif
-	
-	#define UnDecorateSymbolNameEncoded UnDecorateSymbolName
+#include<string>
+#include<vector>
+namespace Interceptor {
+	enum class InterceptorMode { IMMEDIATE_PRINT, CALL_DIAGRAM };
+	enum class FunctionNames { PURE, NORMALIZED };
+	struct InterceptorConfiguration {
 
-#endif
+		InterceptorMode p_mode;
 
-#ifdef USING_WSTRING
-#define STD_STRING std::wstring
-#define INIT_STR L""
-#define CONSOLE_OUT std::wcout
-#define STRSTREAM std::wstringstream
-#define STSTR wcsstr
-#define STRLEN wcslen
-#define STRCOPY_S wcscpy_s
-#define APPENDSTR(STR) STR.append(L"-");
-#define FILE_OSTREAM std::wofstream
-#define STRING_NFOUND std::wstring::npos
-#else
-#define STD_STRING std::string
-#define INIT_STR ""
-#define CONSOLE_OUT std::cout
-#define STRSTREAM std::stringstream
-#define STSTR strstr
-#define STRLEN strlen
-#define STRCOPY_S strcpy_s
-#define APPENDSTR(STR) STR.append("-");
-#define FILE_OSTREAM std::ofstream
-#define STRING_NFOUND std::string::npos
-#endif
+		std::vector<std::string> p_disabled_stuff;
+
+		FunctionNames p_function_names;
+
+		InterceptorConfiguration() {
+			p_mode = InterceptorMode::CALL_DIAGRAM;
+			p_function_names = FunctionNames::NORMALIZED;
+			//normalized ignores
+			if (p_function_names == FunctionNames::NORMALIZED) {
+				p_disabled_stuff.push_back("std_library");
+				p_disabled_stuff.push_back("Concurrency");
+				p_disabled_stuff.push_back("lambda_function");
+				p_disabled_stuff.push_back("operator new");
+				p_disabled_stuff.push_back("boost");
+			}
+			else {
+				p_disabled_stuff.push_back("std::");
+				p_disabled_stuff.push_back("Concurrency::");
+				p_disabled_stuff.push_back("<lambda_");
+				p_disabled_stuff.push_back("operator new");
+				p_disabled_stuff.push_back("boost::");
+			}
+
+			
+		}
+	};
+}

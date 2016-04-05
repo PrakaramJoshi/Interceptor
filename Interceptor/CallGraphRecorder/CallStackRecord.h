@@ -1,24 +1,19 @@
 #pragma once
-#include "InterceptorConfig.h"
+#include <string>
+
 namespace Interceptor {
 	enum class CALL_STATUS { CALL_IN, CALL_OUT };
 	class CallStackRecord {
 
-		STD_STRING m_function;
-
-		STD_STRING m_normalized_name;
+		std::string m_function;
 
 		CALL_STATUS m_call_status;
 
-		void create_normalized_name();
-
 	public:
-		CallStackRecord(const STD_STRING &_function,
+		CallStackRecord(const std::string &_function_name,
 			CALL_STATUS _call_status = CALL_STATUS::CALL_IN);
 
-		STD_STRING get_name()const;
-
-		STD_STRING get_normalized_name()const;
+		std::string get_name()const;
 
 		CALL_STATUS get_call_status()const;
 	};

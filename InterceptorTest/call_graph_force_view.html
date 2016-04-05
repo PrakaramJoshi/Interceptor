@@ -1,7 +1,4 @@
-#pragma once
-namespace Interceptor {
-	const static std::string html_data_key = "$CALL_GRAPH_DATA$";
-	const static std::string html = R"(<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <html lang="en">
 	<head>
 		<meta charset="utf-8">
@@ -25,7 +22,7 @@ namespace Interceptor {
 			var links = [];
 			console.log("here")
 			var read_data = function(){
-				var reader =  $CALL_GRAPH_DATA$
+				var reader =  "8||Concurrency|lambda_function|main|operator new|std_library|x|y|;;0.01|Concurrency;Concurrency;0.01|lambda_function;lambda_function;0.01|main;main;0.01|operator new;operator new;0.01|std_library;std_library;0.01|x;x;0.01|y;y;0.01|;Concurrency;0.01|;main;0.01|;std_library;0.01|Concurrency;Concurrency;0.01|Concurrency;lambda_function;0.01|Concurrency;std_library;0.01|lambda_function;std_library;0.01|main;std_library;0.01|main;x;0.01|main;y;0.01|std_library;Concurrency;0.01|std_library;lambda_function;0.01|std_library;operator new;0.01|std_library;std_library;0.01|std_library;x;0.01|std_library;y;0.01|x;std_library;0.01|y;std_library;0.01|"
 				var text = reader.split("|");
 				var i=1;
 				for(; i < parseInt(text[0])+1; i++) {
@@ -167,5 +164,4 @@ force.on("tick", function() {
 </body>
 </html>
 
-				)";
-};
+				
