@@ -1,16 +1,18 @@
 #include "CallStackRecord.h"
 #include "Interceptor_Internal.h"
-#include <map>
+
 using namespace Interceptor;
 
-CallStackRecord::CallStackRecord(const std::string &_function_name,
+CallStackRecord::CallStackRecord(const string_id &_function_name,
+								const string_id &_function_file_path,
 							CALL_STATUS _call_status) {
 	m_function = _function_name;
 	m_call_status = _call_status;
+	m_function_file_path = _function_file_path;
 }
 
-std::string Interceptor::CallStackRecord::get_name() const {
-	return m_function;
+string_id Interceptor::CallStackRecord::get_name() const {
+	return m_function_file_path;
 }
 
 

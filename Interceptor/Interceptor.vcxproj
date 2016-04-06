@@ -185,6 +185,7 @@
     <ClInclude Include="CallGraphRecorder\CallGraphRecorder.h" />
     <ClInclude Include="CallGraphRecorder\CallStackRecord.h" />
     <ClInclude Include="CallGraphRecorder\CallStackUtils.h" />
+    <ClInclude Include="CallGraphRecorder\StringIndexer.h" />
     <ClInclude Include="FunctionDepth.h" />
     <ClInclude Include="Hook.h" />
     <ClInclude Include="Interceptor.h" />
@@ -197,6 +198,7 @@
     <ClCompile Include="CallGraphRecorder\CallGraphRecorder.cpp" />
     <ClCompile Include="CallGraphRecorder\CallStackRecord.cpp" />
     <ClCompile Include="CallGraphRecorder\CallStackUtils.cpp" />
+    <ClCompile Include="CallGraphRecorder\StringIndexer.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
