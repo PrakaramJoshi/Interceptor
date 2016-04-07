@@ -12,7 +12,7 @@ namespace Interceptor {
 	</head>
 	<body>
 <script type="text/javascript" charset="utf-8">
-			var w = 960, h = 500;
+			var w =1200, h = 1200;
 
 							var labelDistance = 0;
 

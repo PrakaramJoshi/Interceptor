@@ -8,14 +8,18 @@ CallStackRecord::CallStackRecord(const string_id &_function_name,
 							CALL_STATUS _call_status) {
 	m_function = _function_name;
 	m_call_status = _call_status;
-	m_function_file_path = _function_file_path;
+	m_function_file_data = _function_file_path;
 }
 
-string_id Interceptor::CallStackRecord::get_name() const {
-	return m_function_file_path;
+string_id CallStackRecord::get_function_name() const {
+	return m_function;
+}
+
+string_id CallStackRecord::get_file_data()const {
+	return m_function_file_data;
 }
 
 
-CALL_STATUS Interceptor::CallStackRecord::get_call_status() const {
+CALL_STATUS CallStackRecord::get_call_status() const {
 	return m_call_status;
 }

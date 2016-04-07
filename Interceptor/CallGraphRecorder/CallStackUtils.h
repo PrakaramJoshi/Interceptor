@@ -7,5 +7,6 @@ namespace Interceptor {
 	class Utils {
 	public:
 		static std::string get_normalized_function_name(const std::string &_function_name);
+		static std::string get_file_name_from_path(const std::string &_file_path);
 	};
 }

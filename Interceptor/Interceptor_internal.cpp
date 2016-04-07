@@ -58,9 +58,13 @@ void Interceptor_Internal::on_enter_call_diagram_mode(void *_pa) {
 	auto fn_name = get_function_name_internal(_pa);
 	if (!m_main_found) {
 		if (is_main(fn_name)) {
-			m_main_found = true;;
+			m_main_found = true;
+		}
+		else {
+			fn_name = "pre_main";
 		}
 	}
+
 	auto fn_file_name = get_function_file_internal(_pa);
 	m_call_graph_recorder.record(fn_name, fn_file_name);
 }
@@ -71,7 +75,7 @@ void Interceptor_Internal::on_exit_call_diagram_mode(void *_pa) {
 	m_call_graph_recorder.record(fn_name, fn_file_name,CALL_STATUS::CALL_OUT);
 
 	if (m_main_found && is_main(fn_name)) {
-		m_call_graph_recorder.create_call_chart();
+		m_call_graph_recorder.create_call_chart(m_configuration.p_mode);
 	}
 }
 
@@ -86,7 +90,9 @@ void Interceptor_Internal::on_enter_internal(void *_pa) {
 		case Interceptor::InterceptorMode::IMMEDIATE_PRINT:
 			on_enter_immediate_print_mode(_pa);
 			break;
-		case Interceptor::InterceptorMode::CALL_DIAGRAM:
+
+		case Interceptor::InterceptorMode::CALL_DIAGRAM_FUNCTION:
+		case Interceptor::InterceptorMode::CALL_DIAGRAM_FILES:
 			on_enter_call_diagram_mode(_pa);
 			break;
 		default:
@@ -101,7 +107,9 @@ void Interceptor_Internal::on_exit_internal(void *_pa) {
 		case Interceptor::InterceptorMode::IMMEDIATE_PRINT:
 			on_exit_immediate_print_mode(_pa);
 			break;
-		case Interceptor::InterceptorMode::CALL_DIAGRAM:
+
+		case Interceptor::InterceptorMode::CALL_DIAGRAM_FUNCTION:
+		case Interceptor::InterceptorMode::CALL_DIAGRAM_FILES:
 			on_exit_call_diagram_mode(_pa);
 			break;
 		default:
@@ -275,7 +283,7 @@ std::string Interceptor_Internal::get_function_file_internal(void *_pa) {
 	if (iter == m_function_file_cache.end()) {
 		fn = get_function_file_from_symbols_library(_pa);
 		if (m_configuration.p_function_names == FunctionNames::NORMALIZED) {
-			fn = Utils::get_normalized_function_name(fn);
+			fn = Utils::get_file_name_from_path(fn);
 		}
 		m_function_file_cache[_pa] = fn;
 	}

@@ -13,9 +13,15 @@ namespace Interceptor {
 
 		std::size_t m_current_id;
 
+		std::size_t m_redundancy;
+
 	public:
 
 		StringIndexer();
+
+		~StringIndexer();
+
+		void print_stats()const;
 
 		string_id record(const std::string &_str);
 

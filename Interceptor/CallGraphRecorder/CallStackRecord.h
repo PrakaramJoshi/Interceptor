@@ -7,7 +7,7 @@ namespace Interceptor {
 
 		string_id m_function;
 
-		string_id m_function_file_path;
+		string_id m_function_file_data;
 
 		CALL_STATUS m_call_status;
 
@@ -16,7 +16,9 @@ namespace Interceptor {
 			const string_id &_function_file_path,
 			CALL_STATUS _call_status = CALL_STATUS::CALL_IN);
 
-		string_id get_name()const;
+		string_id get_function_name()const;
+
+		string_id get_file_data()const;
 
 		CALL_STATUS get_call_status()const;
 	};

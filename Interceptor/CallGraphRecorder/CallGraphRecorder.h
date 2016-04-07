@@ -5,6 +5,7 @@
 #include <vector>
 #include "CallStackRecord.h"
 #include "StringIndexer.h"
+#include "InterceptorConfig.h"
 namespace Interceptor {
 	typedef std::map<string_id, std::map<string_id, std::size_t> > CALL_GRAPH;
 	class CallGraphRecorder {
@@ -30,7 +31,7 @@ namespace Interceptor {
 
 		void print();
 		
-		void create_call_chart();
+		void create_call_chart(InterceptorMode _mode);
 		
 	};
 };

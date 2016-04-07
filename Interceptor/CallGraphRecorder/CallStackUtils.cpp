@@ -20,3 +20,15 @@ std::string Utils::get_normalized_function_name(const std::string &_function_nam
 		return _function_name;
 	}
 }
+
+std::string Utils::get_file_name_from_path(const std::string &_file_path) {
+	auto file_name_begins_at= _file_path.find_last_of("\\");
+	if (file_name_begins_at == std::string::npos) {
+		file_name_begins_at = 0;
+	}
+	else {
+		file_name_begins_at++;
+	}
+	auto file_name = _file_path.substr(file_name_begins_at);
+	return file_name;
+}

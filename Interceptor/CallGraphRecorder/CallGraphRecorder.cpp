@@ -34,33 +34,52 @@ void Interceptor::CallGraphRecorder::print() {
 
 }
 
-void get_call_chart(std::vector<CallStackRecord> &_call_stack,
-	CALL_GRAPH &_call_graph) {
+void get_call_chart(const std::vector<CallStackRecord> &_call_stack,
+	CALL_GRAPH &_call_graph,
+	const InterceptorMode _mode) {
 	if (_call_stack.empty())
 		return;
 
 	std::stack<string_id> call_stack;
-	call_stack.push(0);
+	//call_stack.push(0);
 
 	for (auto &call_record : _call_stack) {
 		if (call_record.get_call_status() == CALL_STATUS::CALL_IN) {
-			auto caller = call_stack.top();
-			auto callee = call_record.get_name();
-			call_stack.push(callee);
-			//CONSOLE_OUT << callee << std::endl;
-			auto iter = _call_graph.find(caller);
-			if (iter == _call_graph.end()) {
-				_call_graph[caller][callee] = 1;
+			string_id caller = 0;
+			bool caller_found = false;
+			if (!call_stack.empty()) {
+				caller = call_stack.top();
+				caller_found = true;
+			}
+
+			Interceptor::string_id callee;
+			if (_mode == Interceptor::InterceptorMode::CALL_DIAGRAM_FILES) {
+				callee = call_record.get_file_data();
+			}
+			else if (_mode == Interceptor::InterceptorMode::CALL_DIAGRAM_FUNCTION) {
+				callee = call_record.get_function_name();
 			}
 			else {
-				auto callee_iter = iter->second.find(callee);
-				if (callee_iter == iter->second.end()) {
-					iter->second[callee] = 1;
+				std::cout << "ERROR	:	unknown InterceptorMode!" << std::endl;
+			}
+
+			call_stack.push(callee);
+			if (caller_found) {
+				auto iter = _call_graph.find(caller);
+				if (iter == _call_graph.end()) {
+					_call_graph[caller][callee] = 1;
 				}
 				else {
-					++(callee_iter->second);
+					auto callee_iter = iter->second.find(callee);
+					if (callee_iter == iter->second.end()) {
+						iter->second[callee] = 1;
+					}
+					else {
+						++(callee_iter->second);
+					}
 				}
 			}
+			
 		}
 		else {
 			call_stack.pop();
@@ -76,11 +95,11 @@ void AddCallData(std::string& str, const std::string& oldStr, const std::string&
 
 }
 
-void Interceptor::CallGraphRecorder::create_call_chart() {
+void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
 	SLOCK(m_mutex)
 	CALL_GRAPH call_graph;
 	for (auto &call_stacks : m_call_stack_records) {
-		get_call_chart(call_stacks.second, call_graph);
+		get_call_chart(call_stacks.second, call_graph, _mode);
 	}
 	std::string html_data = get_header(call_graph)+get_connectivity(call_graph);
 	auto str = Interceptor::html;

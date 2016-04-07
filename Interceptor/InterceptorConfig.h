@@ -2,7 +2,7 @@
 #include<string>
 #include<vector>
 namespace Interceptor {
-	enum class InterceptorMode { IMMEDIATE_PRINT, CALL_DIAGRAM };
+	enum class InterceptorMode { IMMEDIATE_PRINT, CALL_DIAGRAM_FUNCTION,CALL_DIAGRAM_FILES };
 	enum class FunctionNames { PURE, NORMALIZED };
 	struct InterceptorConfiguration {
 
@@ -13,7 +13,7 @@ namespace Interceptor {
 		FunctionNames p_function_names;
 
 		InterceptorConfiguration() {
-			p_mode = InterceptorMode::CALL_DIAGRAM;
+			p_mode = InterceptorMode::CALL_DIAGRAM_FUNCTION;
 			p_function_names = FunctionNames::NORMALIZED;
 			//normalized ignores
 			if (p_function_names == FunctionNames::NORMALIZED) {
