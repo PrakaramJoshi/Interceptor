@@ -1,6 +1,7 @@
 #include "CallGraphRecorder.h"
 #include "CallGraphHTML.h"
 #include "CallStackUtils.h"
+#include "Interceptor_Internal.h"
 #include <fstream>
 #include<iostream>
 #include <set>
@@ -23,11 +24,38 @@ void CallGraphRecorder::record(const std::string &_function_name,
 	CALL_STATUS _call_status) {
 
 	auto thread_id = std::this_thread::get_id();
+	record(_function_name, _function_file_path, thread_id, _call_status);
+}
+
+void CallGraphRecorder::record(const std::string &_function_name,
+	const std::string &_function_file_path,
+	const std::thread::id &_thread_id,
+	CALL_STATUS _call_status) {
+
 	SLOCK(m_mutex)
 	auto fn_id = m_string_indexer.record(_function_name);
 	auto fn_file_id = m_string_indexer.record(_function_file_path);
-	m_call_stack_records[thread_id].emplace_back(CallStackRecord(fn_id, fn_file_id, _call_status));
+	m_call_stack_records[_thread_id].emplace_back(CallStackRecord(fn_id, fn_file_id, _call_status));
+}
 
+void CallGraphRecorder::record_lazy(void *_pa,
+									CALL_STATUS _call_status ) {
+
+	auto thread_id = std::this_thread::get_id();
+	SLOCK(m_lazy_record_mutex)
+	m_lazy_records[thread_id].push_back(CallStackLazyRecord(_pa, _call_status));
+}
+
+
+void CallGraphRecorder::populate_lazy_data() {
+	for (auto &thread : m_lazy_records) {
+		for (auto &thread_data : thread.second) {
+			auto pa = thread_data.get_pa();
+			auto fn_name = Interceptor_Internal::get().get_function_name_internal(pa);
+			auto fn_file_name = Interceptor_Internal::get().get_function_file_internal(pa);
+			record(fn_name, fn_file_name, thread.first, thread_data.get_call_status());
+		}
+	}
 }
 
 void Interceptor::CallGraphRecorder::print() {
@@ -41,8 +69,7 @@ void get_call_chart(const std::vector<CallStackRecord> &_call_stack,
 		return;
 
 	std::stack<string_id> call_stack;
-	//call_stack.push(0);
-
+	
 	for (auto &call_record : _call_stack) {
 		if (call_record.get_call_status() == CALL_STATUS::CALL_IN) {
 			string_id caller = 0;
@@ -82,10 +109,12 @@ void get_call_chart(const std::vector<CallStackRecord> &_call_stack,
 			
 		}
 		else {
-			call_stack.pop();
+			if(!call_stack.empty())
+				call_stack.pop();
 		}
 	}
 }
+
 void AddCallData(std::string& str, const std::string& oldStr, const std::string& newStr) {
 	size_t pos = 0;
 	while ((pos = str.find(oldStr, pos)) != std::string::npos) {
@@ -96,6 +125,15 @@ void AddCallData(std::string& str, const std::string& oldStr, const std::string&
 }
 
 void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
+
+	{
+		SLOCK(m_lazy_record_mutex)
+		if (!m_lazy_records.empty()) {
+			populate_lazy_data();
+		}
+	}
+	
+
 	SLOCK(m_mutex)
 	CALL_GRAPH call_graph;
 	for (auto &call_stacks : m_call_stack_records) {

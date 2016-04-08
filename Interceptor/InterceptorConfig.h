@@ -2,18 +2,21 @@
 #include<string>
 #include<vector>
 namespace Interceptor {
-	enum class InterceptorMode { IMMEDIATE_PRINT, CALL_DIAGRAM_FUNCTION,CALL_DIAGRAM_FILES };
+	enum class InterceptorMode	{	IMMEDIATE_PRINT,	CALL_DIAGRAM_FUNCTION,	CALL_DIAGRAM_FILES };
+	enum class RecordMode		{	REALTIME,			LAZY,					NOT_RECORDING };
 	enum class FunctionNames { PURE, NORMALIZED };
 	struct InterceptorConfiguration {
 
-		InterceptorMode p_mode;
+		InterceptorMode				p_mode;
 
-		std::vector<std::string> p_disabled_stuff;
+		RecordMode					p_record_mode;
 
-		FunctionNames p_function_names;
+		std::vector<std::string>	p_disabled_stuff;
+
+		FunctionNames				p_function_names;
 
 		InterceptorConfiguration() {
-			p_mode = InterceptorMode::CALL_DIAGRAM_FUNCTION;
+			p_mode = InterceptorMode::CALL_DIAGRAM_FILES;
 			p_function_names = FunctionNames::NORMALIZED;
 			//normalized ignores
 			if (p_function_names == FunctionNames::NORMALIZED) {
@@ -30,7 +33,7 @@ namespace Interceptor {
 				p_disabled_stuff.push_back("operator new");
 				p_disabled_stuff.push_back("boost::");
 			}
-
+			p_record_mode = RecordMode::REALTIME;
 			
 		}
 	};
