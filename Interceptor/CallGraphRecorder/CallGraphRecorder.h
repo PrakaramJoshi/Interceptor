@@ -7,6 +7,8 @@
 #include "CallStackLazyRecord.h"
 #include "StringIndexer.h"
 #include "InterceptorConfig.h"
+#include "InterceptorUtils.h"
+#include <atomic>
 namespace Interceptor {
 	typedef std::map<string_id, std::map<string_id, std::size_t> > CALL_GRAPH;
 	class CallGraphRecorder {
@@ -15,9 +17,11 @@ namespace Interceptor {
 
 		std::map<std::thread::id, std::vector<CallStackLazyRecord> > m_lazy_records;
 
-		std::mutex m_mutex;
+		NonRecursiveLock m_lock;
 
-		std::mutex m_lazy_record_mutex;
+		NonRecursiveLock m_lazy_record_lock;
+
+		std::atomic<bool >m_mutex_locked;
 
 		mutable StringIndexer m_string_indexer;
 

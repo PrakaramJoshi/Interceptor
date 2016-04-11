@@ -1,10 +1,11 @@
 #include "FunctionDepth.h"
-#include "CallStackUtils.h"
+#include "InterceptorUtils.h"
 using namespace Interceptor;
 
 std::size_t FuntionDepth::operator++() {
 	auto id = std::this_thread::get_id();
-	SLOCK(m_mutex);
+
+	std::lock_guard<std::mutex> lock(m_mutex);
 	auto iter = m_function_depth.find(id);
 	if (iter != m_function_depth.end()) {
 		(++iter->second);
@@ -15,7 +16,7 @@ std::size_t FuntionDepth::operator++() {
 }
 std::size_t FuntionDepth::operator--() {
 	auto id = std::this_thread::get_id();
-	SLOCK(m_mutex);
+	std::lock_guard<std::mutex> lock(m_mutex);
 	auto iter = m_function_depth.find(id);
 	if (iter != m_function_depth.end()) {
 		(--iter->second);
@@ -25,7 +26,7 @@ std::size_t FuntionDepth::operator--() {
 }
 
 std::size_t FuntionDepth::load(const std::thread::id &_id)const {
-	SLOCK(m_mutex);
+	std::lock_guard<std::mutex> lock(m_mutex);
 	auto iter = m_function_depth.find(_id);
 	if (iter != m_function_depth.end()) {
 		return (iter->second);
@@ -34,7 +35,7 @@ std::size_t FuntionDepth::load(const std::thread::id &_id)const {
 }
 
 std::size_t FuntionDepth::load()const {
-	SLOCK(m_mutex);
+	std::lock_guard<std::mutex> lock(m_mutex);
 	auto id = std::this_thread::get_id();
 	auto iter = m_function_depth.find(id);
 	if (iter != m_function_depth.end()) {
@@ -43,5 +44,5 @@ std::size_t FuntionDepth::load()const {
 	return 0;
 }
 FuntionDepth::~FuntionDepth() {
-	SLOCK(m_mutex);
+	std::lock_guard<std::mutex> lock(m_mutex);
 }

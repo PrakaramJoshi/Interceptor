@@ -1,6 +1,6 @@
 #include "CallGraphRecorder.h"
 #include "CallGraphHTML.h"
-#include "CallStackUtils.h"
+#include "InterceptorUtils.h"
 #include "Interceptor_Internal.h"
 #include <fstream>
 #include<iostream>
@@ -16,7 +16,10 @@ Interceptor::CallGraphRecorder::CallGraphRecorder() {
 }
 
 Interceptor::CallGraphRecorder::~CallGraphRecorder() {
-	SLOCK(m_mutex)
+	m_lock.lock();
+	m_lazy_record_lock.lock();
+	m_lazy_record_lock.unlock();
+	m_lock.unlock();
 }
 
 void CallGraphRecorder::record(const std::string &_function_name,
@@ -32,18 +35,20 @@ void CallGraphRecorder::record(const std::string &_function_name,
 	const std::thread::id &_thread_id,
 	CALL_STATUS _call_status) {
 
-	SLOCK(m_mutex)
+	m_lock.lock();
 	auto fn_id = m_string_indexer.record(_function_name);
 	auto fn_file_id = m_string_indexer.record(_function_file_path);
 	m_call_stack_records[_thread_id].emplace_back(CallStackRecord(fn_id, fn_file_id, _call_status));
+	m_lock.unlock();
 }
 
 void CallGraphRecorder::record_lazy(void *_pa,
 									CALL_STATUS _call_status ) {
 
 	auto thread_id = std::this_thread::get_id();
-	SLOCK(m_lazy_record_mutex)
+	m_lazy_record_lock.lock();
 	m_lazy_records[thread_id].push_back(CallStackLazyRecord(_pa, _call_status));
+	m_lazy_record_lock.unlock();
 }
 
 
@@ -127,14 +132,15 @@ void AddCallData(std::string& str, const std::string& oldStr, const std::string&
 void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
 
 	{
-		SLOCK(m_lazy_record_mutex)
+		m_lazy_record_lock.lock();
 		if (!m_lazy_records.empty()) {
 			populate_lazy_data();
 		}
+		m_lazy_record_lock.unlock();
 	}
 	
-
-	SLOCK(m_mutex)
+	m_lock.lock();
+	
 	CALL_GRAPH call_graph;
 	for (auto &call_stacks : m_call_stack_records) {
 		get_call_chart(call_stacks.second, call_graph, _mode);
@@ -144,13 +150,11 @@ void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
 	html_data = R"(")" + html_data + R"(")";
 	AddCallData(str, html_data_key, html_data);
 	std::ofstream ofs;
-	char buffer[MAX_PATH];
-	::GetModuleFileNameA(NULL, buffer, MAX_PATH);
-	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
-	auto directory = std::string(buffer).substr(0, pos);
+	auto directory = Utils::get_current_directory();
 	ofs.open(directory+"\\call_graph_force_view.html");
 	std::cout << "Saving the file at : " << (directory + "\\call_graph_force_view.html") << std::endl;
 	ofs << str;
+	m_lock.unlock();
 }
 
 std::string CallGraphRecorder::get_header(const CALL_GRAPH &_call_graph)const {

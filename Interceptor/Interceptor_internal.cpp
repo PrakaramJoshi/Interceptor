@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "Interceptor_Internal.h"
-#include "CallStackUtils.h"
-
+#include "ConfigurationLoader.h"
+#include "InterceptorUtils.h"
 #include <iostream>
 #include <string>
 
@@ -10,13 +10,18 @@ using namespace Interceptor;
 
 Interceptor_Internal::Interceptor_Internal() {
 	
-	m_mutex_available = true;	
+	ConfigurationLoader configloader;
+	m_configuration = configloader.get_configuration();
+	if (m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FILES || m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FUNCTION) {
+		if (!(m_configuration.p_record_mode == RecordMode::LAZY || m_configuration.p_record_mode == RecordMode::REALTIME)) {
+			std::cout << "Interceptor mode set to call diagram, but no recording specified, using default mode as Lazy" << std::endl;
+			m_configuration.p_record_mode = RecordMode::LAZY;
+		}
+	}
 }
 
 Interceptor_Internal::~Interceptor_Internal() {
-	if (!m_mutex_available)
-		return;
-	SLOCK(m_print_mutex)
+	m_print_mutex.lock();
 
 	switch (m_configuration.p_mode) {
 		case InterceptorMode::IMMEDIATE_PRINT:
@@ -28,9 +33,9 @@ Interceptor_Internal::~Interceptor_Internal() {
 			break;
 	}
 	
-	m_mutex_available = false;
-	SLOCK(m_called_func_mutex)
-	
+	m_called_func_mutex.lock();
+	m_called_func_mutex.unlock();
+	m_print_mutex.unlock();
 }
 
 Interceptor_Internal& Interceptor_Internal::get() {
@@ -89,8 +94,7 @@ void Interceptor_Internal::on_exit_call_diagram_mode(void *_pa) {
 }
 
 void Interceptor_Internal::on_enter_internal(void *_pa) {
-	if (!m_mutex_available)
-		return;
+
 	switch (m_configuration.p_mode) {
 		case Interceptor::InterceptorMode::IMMEDIATE_PRINT:
 			on_enter_immediate_print_mode(_pa);
@@ -106,8 +110,7 @@ void Interceptor_Internal::on_enter_internal(void *_pa) {
 }
 
 void Interceptor_Internal::on_exit_internal(void *_pa) {
-	if (!m_mutex_available)
-		return;
+
 	switch (m_configuration.p_mode) {
 		case Interceptor::InterceptorMode::IMMEDIATE_PRINT:
 			on_exit_immediate_print_mode(_pa);
@@ -127,7 +130,7 @@ void Interceptor_Internal::print_to_console(const std::size_t &_stack_depth,
 											bool _in) {
 	if (_function_name.empty())
 		return;
-	for (auto &_disbled_stuff : m_configuration.p_disabled_stuff) {
+	for (auto &_disbled_stuff : m_configuration.p_suppress_function_names) {
 		if (_function_name.find(_disbled_stuff) != std::string::npos) {
 			return;
 		}
@@ -138,7 +141,7 @@ void Interceptor_Internal::print_to_console(const std::size_t &_stack_depth,
 	}
 	out_str.append(_function_name);
 
-	SLOCK(m_print_mutex)
+	m_print_mutex.lock();
 	if (_in) {
 		std::cout << "(in  ";
 	}
@@ -150,40 +153,39 @@ void Interceptor_Internal::print_to_console(const std::size_t &_stack_depth,
 				std::this_thread::get_id() << 
 				")" << 
 				out_str << std::endl;
+	m_print_mutex.unlock();
 }
 
 
 std::string Interceptor_Internal::get_function_name_internal(void *_pa) {
 	std::string fn = "";
-	SLOCK(m_called_func_mutex)
+	m_called_func_mutex.lock();
 	auto iter = m_function_name_cache.find(_pa);
 	if (iter == m_function_name_cache.end()) {
 		fn = m_symbol_resolver.get_function_name_from_symbols_library(_pa);
-		if (m_configuration.p_function_names == FunctionNames::NORMALIZED) {
-			fn = Utils::get_normalized_function_name(fn);
-		}
+		fn = m_configuration.get_function_normal_name(fn);
 		m_function_name_cache[_pa] = fn;
 	}
 	else {
 		fn = iter->second;
 	}
+	m_called_func_mutex.unlock();
 	return fn;
 }
 
-
 std::string Interceptor_Internal::get_function_file_internal(void *_pa) {
 	std::string fn = "";
-	SLOCK(m_called_func_mutex)
+	m_called_func_mutex.lock();
 	auto iter = m_function_file_cache.find(_pa);
 	if (iter == m_function_file_cache.end()) {
 		fn =m_symbol_resolver.get_function_file_from_symbols_library(_pa);
-		if (m_configuration.p_function_names == FunctionNames::NORMALIZED) {
-			fn = Utils::get_file_name_from_path(fn);
-		}
+		fn = Utils::get_file_name_from_path(fn);
+		fn = m_configuration.get_file_normal_name(fn);
 		m_function_file_cache[_pa] = fn;
 	}
 	else {
 		fn = iter->second;
 	}
+	m_called_func_mutex.unlock();
 	return fn;
 }

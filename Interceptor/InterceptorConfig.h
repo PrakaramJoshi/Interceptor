@@ -1,40 +1,61 @@
 #pragma once
 #include<string>
 #include<vector>
+#include <map>
 namespace Interceptor {
-	enum class InterceptorMode	{	IMMEDIATE_PRINT,	CALL_DIAGRAM_FUNCTION,	CALL_DIAGRAM_FILES };
-	enum class RecordMode		{	REALTIME,			LAZY,					NOT_RECORDING };
-	enum class FunctionNames { PURE, NORMALIZED };
+	enum InterceptorMode	{	IMMEDIATE_PRINT,	CALL_DIAGRAM_FUNCTION,	CALL_DIAGRAM_FILES
+									,TOTAL_INTERCEPTOR_MODES };
+
+	enum RecordMode		{	REALTIME,	LAZY,	NOT_RECORDING, TOTAL_RECORD_MODES };
+
+	enum NamesNormalization { PURE, NORMALIZED, TOTAL_FUNCTION_NAMES };
+
+	const std::string InterceptorModeStr[InterceptorMode::TOTAL_INTERCEPTOR_MODES] = { "IMMEDIATE_PRINT", "CALL_DIAGRAM_FUNCTION" ,"CALL_DIAGRAM_FILES" };
+
+	const std::string RecordModeStr[RecordMode::TOTAL_RECORD_MODES] = { "REALTIME", "LAZY","NOT_RECORDING" };
+
+	const std::string NamesNormalizationStr[NamesNormalization::TOTAL_FUNCTION_NAMES] = { "PURE","NORMALIZED" };
+
 	struct InterceptorConfiguration {
 
-		InterceptorMode				p_mode;
+		InterceptorMode						p_mode;
 
-		RecordMode					p_record_mode;
+		RecordMode							p_record_mode;
 
-		std::vector<std::string>	p_disabled_stuff;
+		std::vector<std::string>			p_suppress_function_names;
+		
+		std::vector<std::string>			p_suppress_file_names;
 
-		FunctionNames				p_function_names;
+		std::map<std::string, std::string>	p_function_normal;
+
+		std::map<std::string, std::string>	p_file_normal;
+
+		NamesNormalization					p_name_normalization;
 
 		InterceptorConfiguration() {
-			p_mode = InterceptorMode::CALL_DIAGRAM_FILES;
-			p_function_names = FunctionNames::NORMALIZED;
-			//normalized ignores
-			if (p_function_names == FunctionNames::NORMALIZED) {
-				p_disabled_stuff.push_back("std_library");
-				p_disabled_stuff.push_back("Concurrency");
-				p_disabled_stuff.push_back("lambda_function");
-				p_disabled_stuff.push_back("operator new");
-				p_disabled_stuff.push_back("boost");
+				
+		}
+
+		std::string get_function_normal_name(const std::string &_function_name)const {
+			if (p_name_normalization == NamesNormalization::PURE)
+				return _function_name;
+			for (auto &f : p_function_normal) {
+				if (_function_name.find(f.first) != std::string::npos) {
+					return f.second;
+				}
 			}
-			else {
-				p_disabled_stuff.push_back("std::");
-				p_disabled_stuff.push_back("Concurrency::");
-				p_disabled_stuff.push_back("<lambda_");
-				p_disabled_stuff.push_back("operator new");
-				p_disabled_stuff.push_back("boost::");
+			return _function_name;
+		}
+
+		std::string get_file_normal_name(const std::string &_file_name)const {
+			if (p_name_normalization == NamesNormalization::PURE)
+				return _file_name;
+			for (auto &f : p_file_normal) {
+				if (_file_name.find(f.first) != std::string::npos) {
+					return f.second;
+				}
 			}
-			p_record_mode = RecordMode::REALTIME;
-			
+			return _file_name;
 		}
 	};
 }

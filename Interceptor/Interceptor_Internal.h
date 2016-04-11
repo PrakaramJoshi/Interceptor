@@ -1,8 +1,9 @@
 #pragma once
 #include "CallGraphRecorder.h"
+#include "CallStackLazyRecord.h"
 #include "FunctionDepth.h"
 #include "InterceptorConfig.h"
-#include "CallStackLazyRecord.h"
+#include "InterceptorUtils.h"
 #include "SymbolResolver.h"
 
 #include <map>
@@ -20,25 +21,21 @@ namespace Interceptor {
 		Interceptor_Internal& operator=(Interceptor_Internal&&)		= delete;
 		Interceptor_Internal();
 
-
-
 		FuntionDepth					m_function_call_depth;
 
 		CallGraphRecorder				m_call_graph_recorder;
 
 		SymbolResolver					m_symbol_resolver;
 
-		std::mutex						m_called_func_mutex;
+		NonRecursiveLock				m_called_func_mutex;
 
-		std::mutex						m_print_mutex;
+		NonRecursiveLock				m_print_mutex;
 
 		std::map<void*, std::string>	m_function_name_cache;
 
 		std::map<void*, std::string>	m_function_file_cache;
 
-		std::atomic<bool>				m_mutex_available;
-
-		const InterceptorConfiguration	m_configuration;
+		InterceptorConfiguration		m_configuration;
 
 		std::string get_function_name_internal(void *_pa);
 

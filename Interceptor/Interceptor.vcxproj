@@ -90,7 +90,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;INTERCEPTOR_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>.;./CallGraphRecorder;./SymbolResolver</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;./CallGraphRecorder;./SymbolResolver;./Utils;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -107,7 +107,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;INTERCEPTOR_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <OmitFramePointers>false</OmitFramePointers>
-      <AdditionalIncludeDirectories>.;./CallGraphRecorder;./SymbolResolver</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;./CallGraphRecorder;./SymbolResolver;./Utils;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -133,7 +133,7 @@
       <SDLCheck>true</SDLCheck>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>.;./CallGraphRecorder;./SymbolResolver</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;./CallGraphRecorder;./SymbolResolver;./Utils;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -160,7 +160,7 @@
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <OmitFramePointers>false</OmitFramePointers>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>.;./CallGraphRecorder;./SymbolResolver</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;./CallGraphRecorder;./SymbolResolver;./Utils;</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <AdditionalOptions>/EHar %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -185,7 +185,6 @@
     <ClInclude Include="CallGraphRecorder\CallGraphRecorder.h" />
     <ClInclude Include="CallGraphRecorder\CallStackLazyRecord.h" />
     <ClInclude Include="CallGraphRecorder\CallStackRecord.h" />
-    <ClInclude Include="CallGraphRecorder\CallStackUtils.h" />
     <ClInclude Include="CallGraphRecorder\StringIndexer.h" />
     <ClInclude Include="FunctionDepth.h" />
     <ClInclude Include="Hook.h" />
@@ -193,13 +192,14 @@
     <ClInclude Include="InterceptorConfig.h" />
     <ClInclude Include="Interceptor_Internal.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="ConfigurationLoader.h" />
     <ClInclude Include="SymbolResolver\SymbolResolver.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="Utils\InterceptorUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CallGraphRecorder\CallGraphRecorder.cpp" />
     <ClCompile Include="CallGraphRecorder\CallStackRecord.cpp" />
-    <ClCompile Include="CallGraphRecorder\CallStackUtils.cpp" />
     <ClCompile Include="CallGraphRecorder\StringIndexer.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
@@ -221,7 +221,9 @@
     </ClCompile>
     <ClCompile Include="Interceptor_internal.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="ConfigurationLoader.cpp" />
     <ClCompile Include="SymbolResolver\SymbolResolver.cpp" />
+    <ClCompile Include="Utils\InterceptorUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="Assem64.asm">
