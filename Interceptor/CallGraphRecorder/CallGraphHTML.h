@@ -232,7 +232,14 @@ force.on("tick", function() {
 
 	var fill = function(d) {
 		if (d.index === 0) return '#ccc';
-		return "hsl(" + parseInt(((packageNames[d.index][0].charCodeAt() - 97) / 26) * 360, 10) + ",90%,70%) ";
+		var str = packageNames[d.index].toLowerCase();
+		var n = str.length;
+		var total=0;
+		for(var j=0;j<n;j++){
+			total = total +((parseInt(str.charCodeAt(j)-97)/26));
+		}
+		total=total/n;
+		return "hsl(" + parseInt(total* 360, 10) + ",90%,70%) ";
 	};
 
 	// Returns an event handler for fading a given chord group.
