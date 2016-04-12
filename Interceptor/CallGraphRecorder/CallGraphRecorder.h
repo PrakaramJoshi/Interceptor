@@ -7,7 +7,7 @@
 #include "CallStackLazyRecord.h"
 #include "StringIndexer.h"
 #include "InterceptorConfig.h"
-#include "InterceptorUtils.h"
+#include "NonRecursiveLock.h"
 #include <atomic>
 namespace Interceptor {
 	typedef std::map<string_id, std::map<string_id, std::size_t> > CALL_GRAPH;
@@ -25,9 +25,19 @@ namespace Interceptor {
 
 		mutable StringIndexer m_string_indexer;
 
-		std::string get_header(const CALL_GRAPH &_call_graph)const;
+		std::string get_header_force_layout(const CALL_GRAPH &_call_graph)const;
 
-		std::string get_connectivity(const CALL_GRAPH &_call_graph)const;
+		std::string get_package_names_dependency_graph(const CALL_GRAPH &_call_graph,
+														std::map<string_id, std::size_t> &_id)const;
+
+		std::string get_connectivity_matrix_dependency_graph(const CALL_GRAPH &_call_graph,
+															std::map<string_id, std::size_t> &_id)const;
+
+		std::string get_connectivity_force_layout(const CALL_GRAPH &_call_graph)const;
+
+		void create_force_layout_chart(const CALL_GRAPH &_call_graph);
+
+		void create_dependency_graph(const CALL_GRAPH &_call_graph);
 
 		void populate_lazy_data();
 

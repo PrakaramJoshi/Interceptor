@@ -196,6 +196,7 @@
     <ClInclude Include="SymbolResolver\SymbolResolver.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Utils\InterceptorUtils.h" />
+    <ClInclude Include="Utils\NonRecursiveLock.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CallGraphRecorder\CallGraphRecorder.cpp" />

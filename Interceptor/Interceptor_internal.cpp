@@ -12,7 +12,9 @@ Interceptor_Internal::Interceptor_Internal() {
 	
 	ConfigurationLoader configloader;
 	m_configuration = configloader.get_configuration();
-	if (m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FILES || m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FUNCTION) {
+	if (m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FILES || 
+		m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FUNCTION||
+		m_configuration.p_mode == InterceptorMode::CALL_DEPENDENCY_FUNCTION) {
 		if (!(m_configuration.p_record_mode == RecordMode::LAZY || m_configuration.p_record_mode == RecordMode::REALTIME)) {
 			std::cout << "Interceptor mode set to call diagram, but no recording specified, using default mode as Lazy" << std::endl;
 			m_configuration.p_record_mode = RecordMode::LAZY;
@@ -28,6 +30,7 @@ Interceptor_Internal::~Interceptor_Internal() {
 			break;
 		case InterceptorMode::CALL_DIAGRAM_FILES:
 		case InterceptorMode::CALL_DIAGRAM_FUNCTION:
+		case InterceptorMode::CALL_DEPENDENCY_FUNCTION:
 			m_call_graph_recorder.create_call_chart(m_configuration.p_mode);
 		default:
 			break;
@@ -102,6 +105,7 @@ void Interceptor_Internal::on_enter_internal(void *_pa) {
 
 		case Interceptor::InterceptorMode::CALL_DIAGRAM_FUNCTION:
 		case Interceptor::InterceptorMode::CALL_DIAGRAM_FILES:
+		case Interceptor::InterceptorMode::CALL_DEPENDENCY_FUNCTION:
 			on_enter_call_diagram_mode(_pa);
 			break;
 		default:
@@ -118,6 +122,7 @@ void Interceptor_Internal::on_exit_internal(void *_pa) {
 
 		case Interceptor::InterceptorMode::CALL_DIAGRAM_FUNCTION:
 		case Interceptor::InterceptorMode::CALL_DIAGRAM_FILES:
+		case Interceptor::InterceptorMode::CALL_DEPENDENCY_FUNCTION:
 			on_exit_call_diagram_mode(_pa);
 			break;
 		default:

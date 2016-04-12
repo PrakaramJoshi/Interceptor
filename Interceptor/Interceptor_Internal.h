@@ -3,7 +3,6 @@
 #include "CallStackLazyRecord.h"
 #include "FunctionDepth.h"
 #include "InterceptorConfig.h"
-#include "InterceptorUtils.h"
 #include "SymbolResolver.h"
 
 #include <map>

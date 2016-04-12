@@ -3,14 +3,16 @@
 #include<vector>
 #include <map>
 namespace Interceptor {
-	enum InterceptorMode	{	IMMEDIATE_PRINT,	CALL_DIAGRAM_FUNCTION,	CALL_DIAGRAM_FILES
+	enum InterceptorMode	{	IMMEDIATE_PRINT,	CALL_DIAGRAM_FUNCTION,	CALL_DIAGRAM_FILES,
+								CALL_DEPENDENCY_FUNCTION
 									,TOTAL_INTERCEPTOR_MODES };
 
 	enum RecordMode		{	REALTIME,	LAZY,	NOT_RECORDING, TOTAL_RECORD_MODES };
 
 	enum NamesNormalization { PURE, NORMALIZED, TOTAL_FUNCTION_NAMES };
 
-	const std::string InterceptorModeStr[InterceptorMode::TOTAL_INTERCEPTOR_MODES] = { "IMMEDIATE_PRINT", "CALL_DIAGRAM_FUNCTION" ,"CALL_DIAGRAM_FILES" };
+	const std::string InterceptorModeStr[InterceptorMode::TOTAL_INTERCEPTOR_MODES] = { "IMMEDIATE_PRINT", "CALL_DIAGRAM_FUNCTION" ,"CALL_DIAGRAM_FILES",
+																					"CALL_DEPENDENCY_FUNCTION" };
 
 	const std::string RecordModeStr[RecordMode::TOTAL_RECORD_MODES] = { "REALTIME", "LAZY","NOT_RECORDING" };
 

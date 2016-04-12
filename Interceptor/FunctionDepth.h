@@ -1,13 +1,13 @@
 #pragma once
+#include "NonRecursiveLock.h"
 #include <map>
-#include <mutex>
 #include <thread>
 namespace Interceptor {
 
 	// a class to record the current stack depth for each stack.
 	// thread safe
 	class FuntionDepth {
-		mutable std::mutex m_mutex;
+		mutable NonRecursiveLock m_mutex;
 		std::map<std::thread::id, std::size_t> m_function_depth;
 	public:
 		std::size_t operator++();

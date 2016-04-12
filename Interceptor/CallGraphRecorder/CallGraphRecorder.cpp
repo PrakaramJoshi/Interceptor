@@ -85,10 +85,11 @@ void get_call_chart(const std::vector<CallStackRecord> &_call_stack,
 			}
 
 			Interceptor::string_id callee;
-			if (_mode == Interceptor::InterceptorMode::CALL_DIAGRAM_FILES) {
+			if (_mode == Interceptor::InterceptorMode::CALL_DIAGRAM_FILES ) {
 				callee = call_record.get_file_data();
 			}
-			else if (_mode == Interceptor::InterceptorMode::CALL_DIAGRAM_FUNCTION) {
+			else if (_mode == Interceptor::InterceptorMode::CALL_DIAGRAM_FUNCTION ||
+				_mode == Interceptor::InterceptorMode::CALL_DEPENDENCY_FUNCTION) {
 				callee = call_record.get_function_name();
 			}
 			else {
@@ -129,6 +130,93 @@ void AddCallData(std::string& str, const std::string& oldStr, const std::string&
 
 }
 
+void CallGraphRecorder::create_force_layout_chart(const CALL_GRAPH &_call_graph) {
+	std::string html_data = get_header_force_layout(_call_graph) + get_connectivity_force_layout(_call_graph);
+	auto str = Interceptor::html_call_graph_force_diagram;
+	html_data = R"(")" + html_data + R"(")";
+	AddCallData(str, html_data_key, html_data);
+	std::ofstream ofs;
+	auto directory = Utils::get_current_directory();
+	ofs.open(directory + "\\call_graph_force_view.html");
+	std::cout << "Saving the file at : " << (directory + "\\call_graph_force_view.html") << std::endl;
+	ofs << str;
+}
+
+std::string CallGraphRecorder::get_package_names_dependency_graph(const CALL_GRAPH &_call_graph,
+																std::map<string_id,std::size_t> &_id)const {
+	std::size_t id = 0;
+	std::set<string_id> function_names;
+	for (auto &call : _call_graph) {
+		function_names.insert(call.first);
+		for (auto &call_details : call.second) {
+			function_names.insert(call_details.first);
+		}
+	}
+	std::stringstream str;
+	for (auto iter = function_names.begin(); iter != function_names.end(); ++iter) {
+		auto nextIter = iter;
+		nextIter++;
+		auto fn_name = m_string_indexer[*iter];
+		if (fn_name.empty())
+			fn_name = "unknown_function";
+		str << "'" << fn_name << "'" << (nextIter == function_names.end() ? "" : ",");
+		_id[*iter] = id;
+		++id;
+	}
+
+	return str.str();
+}
+
+std::string CallGraphRecorder::get_connectivity_matrix_dependency_graph(const CALL_GRAPH &_call_graph,
+																		std::map<string_id, std::size_t> &_id)const {
+	std::stringstream str;
+	std::map<std::size_t, std::map<std::size_t, std::size_t> > matrix;
+
+	auto total_fns = _id.size();
+	// fill the empty blocks
+	for (std::size_t i = 0; i < total_fns; i++) {
+		for (std::size_t j = 0; j < total_fns; j++) {
+			matrix[i][j] = 0;
+		}
+	}
+
+	for (auto iter = _call_graph.begin(); iter != _call_graph.end(); ++iter) {
+		auto fn1_id = _id[(*iter).first];
+		for (auto innerIter = (*iter).second.begin(); innerIter != (*iter).second.end(); ++innerIter) {
+			auto fn2_id = _id[(*innerIter).first];
+			matrix[fn1_id][fn2_id] = (*innerIter).second;
+		}
+	}
+	for (auto call_iter = matrix.begin(); call_iter != matrix.end(); ++call_iter) {
+		auto next_call_iter = call_iter;
+		next_call_iter++;
+		str << "[";
+		for (auto iter = (*call_iter).second.begin(); iter != (*call_iter).second.end(); ++iter) {
+			auto nextIter = iter;
+			nextIter++;
+			str << ((*iter).second>0?1:0) << (nextIter == (*call_iter).second.end() ? "" : ",");
+		}
+		str << "]"<<(next_call_iter==matrix.end()?"":",");
+
+	}
+	return str.str();
+}
+
+void CallGraphRecorder::create_dependency_graph(const CALL_GRAPH &_call_graph) {
+
+	auto str = Interceptor::html_call_dependency;
+	std::map<std::size_t, string_id> ids;
+	auto package_names = get_package_names_dependency_graph(_call_graph,ids);
+	auto matrix = get_connectivity_matrix_dependency_graph(_call_graph, ids);
+	AddCallData(str, html_package_names_key, package_names);
+	AddCallData(str, html_dependency_matrix_key, matrix);
+	std::ofstream ofs;
+	auto directory = Utils::get_current_directory();
+	ofs.open(directory + "\\call_dependency_wheel.html");
+	std::cout << "Saving the file at : " << (directory + "\\call_dependency_wheel.html") << std::endl;
+	ofs << str;
+}
+
 void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
 
 	{
@@ -145,19 +233,21 @@ void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
 	for (auto &call_stacks : m_call_stack_records) {
 		get_call_chart(call_stacks.second, call_graph, _mode);
 	}
-	std::string html_data = get_header(call_graph)+get_connectivity(call_graph);
-	auto str = Interceptor::html;
-	html_data = R"(")" + html_data + R"(")";
-	AddCallData(str, html_data_key, html_data);
-	std::ofstream ofs;
-	auto directory = Utils::get_current_directory();
-	ofs.open(directory+"\\call_graph_force_view.html");
-	std::cout << "Saving the file at : " << (directory + "\\call_graph_force_view.html") << std::endl;
-	ofs << str;
+	switch (_mode) {
+		case Interceptor::CALL_DIAGRAM_FUNCTION:
+		case Interceptor::CALL_DIAGRAM_FILES:
+			create_force_layout_chart(call_graph);
+			break;
+		case Interceptor::CALL_DEPENDENCY_FUNCTION:
+			create_dependency_graph(call_graph);
+			break;
+		default:
+			break;
+	}
 	m_lock.unlock();
 }
 
-std::string CallGraphRecorder::get_header(const CALL_GRAPH &_call_graph)const {
+std::string CallGraphRecorder::get_header_force_layout(const CALL_GRAPH &_call_graph)const {
 	std::set<string_id> function_names;
 	for (auto &call : _call_graph) {
 		function_names.insert(call.first);
@@ -178,7 +268,7 @@ std::string CallGraphRecorder::get_header(const CALL_GRAPH &_call_graph)const {
 	return str.str();
 }
 
-std::string CallGraphRecorder::get_connectivity(const CALL_GRAPH &_call_graph)const {
+std::string CallGraphRecorder::get_connectivity_force_layout(const CALL_GRAPH &_call_graph)const {
 	std::stringstream str;
 	for (auto &call : _call_graph) {
 		auto fn1 = m_string_indexer[call.first];
