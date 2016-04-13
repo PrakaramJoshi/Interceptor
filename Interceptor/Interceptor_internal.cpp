@@ -23,7 +23,8 @@ Interceptor_Internal::Interceptor_Internal() {
 }
 
 Interceptor_Internal::~Interceptor_Internal() {
-	m_print_mutex.lock();
+
+	UniqueGuard guard_print(m_print_mutex);
 
 	switch (m_configuration.p_mode) {
 		case InterceptorMode::IMMEDIATE_PRINT:
@@ -36,9 +37,7 @@ Interceptor_Internal::~Interceptor_Internal() {
 			break;
 	}
 	
-	m_called_func_mutex.lock();
-	m_called_func_mutex.unlock();
-	m_print_mutex.unlock();
+	UniqueGuard guard_func_mutex(m_called_func_mutex);
 }
 
 Interceptor_Internal& Interceptor_Internal::get() {
@@ -146,7 +145,7 @@ void Interceptor_Internal::print_to_console(const std::size_t &_stack_depth,
 	}
 	out_str.append(_function_name);
 
-	m_print_mutex.lock();
+	UniqueGuard guard_print(m_print_mutex);
 	if (_in) {
 		std::cout << "(in  ";
 	}
@@ -158,13 +157,12 @@ void Interceptor_Internal::print_to_console(const std::size_t &_stack_depth,
 				std::this_thread::get_id() << 
 				")" << 
 				out_str << std::endl;
-	m_print_mutex.unlock();
 }
 
 
 std::string Interceptor_Internal::get_function_name_internal(void *_pa) {
 	std::string fn = "";
-	m_called_func_mutex.lock();
+	UniqueGuard guard_func_mutex(m_called_func_mutex);
 	auto iter = m_function_name_cache.find(_pa);
 	if (iter == m_function_name_cache.end()) {
 		fn = m_symbol_resolver.get_function_name_from_symbols_library(_pa);
@@ -174,13 +172,12 @@ std::string Interceptor_Internal::get_function_name_internal(void *_pa) {
 	else {
 		fn = iter->second;
 	}
-	m_called_func_mutex.unlock();
 	return fn;
 }
 
 std::string Interceptor_Internal::get_function_file_internal(void *_pa) {
 	std::string fn = "";
-	m_called_func_mutex.lock();
+	UniqueGuard guard_func_mutex(m_called_func_mutex);
 	auto iter = m_function_file_cache.find(_pa);
 	if (iter == m_function_file_cache.end()) {
 		fn =m_symbol_resolver.get_function_file_from_symbols_library(_pa);
@@ -191,6 +188,5 @@ std::string Interceptor_Internal::get_function_file_internal(void *_pa) {
 	else {
 		fn = iter->second;
 	}
-	m_called_func_mutex.unlock();
 	return fn;
 }

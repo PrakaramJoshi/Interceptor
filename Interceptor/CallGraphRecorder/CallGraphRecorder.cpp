@@ -16,10 +16,9 @@ Interceptor::CallGraphRecorder::CallGraphRecorder() {
 }
 
 Interceptor::CallGraphRecorder::~CallGraphRecorder() {
-	m_lock.lock();
-	m_lazy_record_lock.lock();
-	m_lazy_record_lock.unlock();
-	m_lock.unlock();
+
+	UniqueGuard guard_lock(m_lock);
+	UniqueGuard guard_lazy_record_lock(m_lazy_record_lock);
 }
 
 void CallGraphRecorder::record(const std::string &_function_name,
@@ -35,20 +34,19 @@ void CallGraphRecorder::record(const std::string &_function_name,
 	const std::thread::id &_thread_id,
 	CALL_STATUS _call_status) {
 
-	m_lock.lock();
+	UniqueGuard guard_lock(m_lock);
+
 	auto fn_id = m_string_indexer.record(_function_name);
 	auto fn_file_id = m_string_indexer.record(_function_file_path);
 	m_call_stack_records[_thread_id].emplace_back(CallStackRecord(fn_id, fn_file_id, _call_status));
-	m_lock.unlock();
 }
 
 void CallGraphRecorder::record_lazy(void *_pa,
 									CALL_STATUS _call_status ) {
 
 	auto thread_id = std::this_thread::get_id();
-	m_lazy_record_lock.lock();
+	UniqueGuard guard_lazy_record_lock(m_lazy_record_lock);
 	m_lazy_records[thread_id].push_back(CallStackLazyRecord(_pa, _call_status));
-	m_lazy_record_lock.unlock();
 }
 
 
@@ -220,14 +218,13 @@ void CallGraphRecorder::create_dependency_graph(const CALL_GRAPH &_call_graph) {
 void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
 
 	{
-		m_lazy_record_lock.lock();
+		UniqueGuard guard_lazy_record_lock(m_lazy_record_lock);
 		if (!m_lazy_records.empty()) {
 			populate_lazy_data();
 		}
-		m_lazy_record_lock.unlock();
 	}
 	
-	m_lock.lock();
+	UniqueGuard guard_lock(m_lock);
 	
 	CALL_GRAPH call_graph;
 	for (auto &call_stacks : m_call_stack_records) {
@@ -244,7 +241,7 @@ void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
 		default:
 			break;
 	}
-	m_lock.unlock();
+
 }
 
 std::string CallGraphRecorder::get_header_force_layout(const CALL_GRAPH &_call_graph)const {
