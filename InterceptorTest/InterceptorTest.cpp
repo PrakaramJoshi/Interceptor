@@ -24,8 +24,8 @@ int main()
 	while (i < 5) {
 		std::thread t1(x);
 		std::thread t2(y);
-		/*auto f = std::async(std::launch::async, x);
-		f.get();*/
+		auto f = std::async(std::launch::async, x);
+		f.get();
 		t1.join();
 		t2.join();
 		i++;
