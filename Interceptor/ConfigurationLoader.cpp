@@ -1,9 +1,9 @@
 #include "ConfigurationLoader.h"
 #include "InterceptorUtils.h"
-
+#include "Logger.h"
 #include <fstream>
 using namespace Interceptor;
-
+using namespace AceLogger;
 ConfigurationLoader::ConfigurationLoader() {
 
 	m_default_file_name = "interceptor.config";
@@ -17,10 +17,12 @@ void ConfigurationLoader::add_default_search_path() {
 }
 
 void ConfigurationLoader::add_search_path(const std::string &_file_path) {
+	Log("added file search path for config " + _file_path);
 	m_search_paths.push(_file_path);
 }
 
 InterceptorConfiguration ConfigurationLoader::create_default_configuration() {
+	Log("creating default configuration...");
 	InterceptorConfiguration config;
 	config.p_mode = InterceptorMode::IMMEDIATE_PRINT;
 	config.p_name_normalization = NamesNormalization::NORMALIZED;
@@ -61,13 +63,17 @@ void ConfigurationLoader::update_suppressed_container(InterceptorConfiguration &
 }
 
 InterceptorConfiguration ConfigurationLoader::get_configuration() {
+	Log("loading configuration...");
 	InterceptorConfiguration config = create_default_configuration();
 	auto search_paths = m_search_paths;
+	Log("searching for Interceptor.config ...");
 	while (!search_paths.empty()) {
 		auto file_path = search_paths.top();
+		Log("checking " + file_path);
 		search_paths.pop();
 		std::vector<KeyVal> key_vals;
 		if (Utils::read_key_val_file(file_path, key_vals, '=', '#')) {
+			Log("file found, updating configuration from file...");
 			while (!search_paths.empty()) {
 				search_paths.pop();
 			}

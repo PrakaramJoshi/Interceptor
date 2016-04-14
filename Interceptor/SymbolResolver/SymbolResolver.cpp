@@ -1,12 +1,13 @@
 #include "SymbolResolver.h"
-
+#include "Logger.h"
 #include <imagehlp.h>
 #include <strsafe.h>
 
 using namespace Interceptor;
+using namespace AceLogger;
 
 SymbolResolver::SymbolResolver() {
-
+	Log("Symbol resolver created.");
 	m_bInitResult = false;
 	m_current_process = 0;
 
@@ -16,6 +17,7 @@ SymbolResolver::SymbolResolver() {
 void SymbolResolver::init(void *_pAddress) {
 	if (m_bInitResult)
 		return;
+	Log("initializing Symbol resolver...");
 	//Query the memory
 	char moduleName[MAX_PATH];
 	MEMORY_BASIC_INFORMATION mbi;
@@ -24,7 +26,7 @@ void SymbolResolver::init(void *_pAddress) {
 	VirtualQuery((void*)_pAddress, &mbi, sizeof(mbi));
 	GetModuleFileNameA((HMODULE)mbi.AllocationBase,
 		moduleName, MAX_PATH);
-
+	Log("Module name : " + std::string(moduleName));
 	//Initialize the symbols
 	if (SymInitialize(m_current_process, moduleName, TRUE) == TRUE) {
 		m_bInitResult = true;
@@ -54,7 +56,9 @@ bool get_file_name(HANDLE _handle, void *_pa, std::string &_file_name) {
 		return false;
 	}
 	const size_t max_name_length = MAX_SYM_NAME;
+#pragma warning(disable:4101)
 	PIMAGEHLP_SYMBOL64 dummy;
+#pragma warning(default:4101)
 	char buffer2[sizeof(SYMBOL_INFO) + max_name_length * sizeof(dummy->Name[0])] = { 0 };
 	PIMAGEHLP_SYMBOL64 pSymbol;
 	pSymbol = (PIMAGEHLP_SYMBOL64)buffer2;
@@ -91,7 +95,9 @@ bool get_sym_name_eha(HANDLE _handle, void *_pa, SYMBOL_INFO &_symbol) {
 
 bool get_sym_name(HANDLE _handle, void *_pa, std::string &_func_name) {
 	const size_t max_name_length = MAX_SYM_NAME;
+#pragma warning(disable:4101)
 	SYMBOL_INFO dummy;
+#pragma warning(default:4101)
 	char buffer2[sizeof(SYMBOL_INFO) + max_name_length * sizeof(dummy.Name[0])] = { 0 };
 	SYMBOL_INFO &symbol = *reinterpret_cast<SYMBOL_INFO *>(buffer2);
 

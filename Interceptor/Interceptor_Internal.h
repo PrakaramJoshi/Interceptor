@@ -3,6 +3,7 @@
 #include "CallStackLazyRecord.h"
 #include "FunctionDepth.h"
 #include "InterceptorConfig.h"
+#include "Logger.h"
 #include "SymbolResolver.h"
 
 #include <map>
@@ -11,6 +12,11 @@
 #include <atomic>
 
 namespace Interceptor {
+
+	static HANDLE& DLLModuleHandle() {
+		static HANDLE handle;
+		return handle;
+	};
 	
 	class Interceptor_Internal {
 
@@ -36,6 +42,8 @@ namespace Interceptor {
 
 		InterceptorConfiguration		m_configuration;
 
+		AceLogger::register_logger_helper *m_logger;
+
 		std::string get_function_name_internal(void *_pa);
 
 		std::string get_function_file_internal(void *_pa);
@@ -56,13 +64,13 @@ namespace Interceptor {
 
 		static Interceptor_Internal& get();
 
+		void init();
+
 	public:
 
 		friend class CallGraphRecorder;
 
 		~Interceptor_Internal();
-
-		static void init(void *_pAddress);
 
 		static void on_enter(void *_pa);
 

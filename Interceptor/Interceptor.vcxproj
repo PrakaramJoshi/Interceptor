@@ -195,7 +195,10 @@
     <ClInclude Include="ConfigurationLoader.h" />
     <ClInclude Include="SymbolResolver\SymbolResolver.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="Utils\BlockingQueue.h" />
     <ClInclude Include="Utils\InterceptorUtils.h" />
+    <ClInclude Include="Utils\Logger.h" />
+    <ClInclude Include="Utils\MemoryCache.h" />
     <ClInclude Include="Utils\NonRecursiveLock.h" />
   </ItemGroup>
   <ItemGroup>

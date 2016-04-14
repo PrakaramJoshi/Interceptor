@@ -7,9 +7,11 @@
 
 
 using namespace Interceptor;
-
+using namespace AceLogger;
 Interceptor_Internal::Interceptor_Internal() {
-	
+
+	m_logger = new register_logger_helper(Utils::get_current_directory(), "Interceptor", "1.0");
+	init();
 	ConfigurationLoader configloader;
 	m_configuration = configloader.get_configuration();
 	if (m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FILES || 
@@ -24,6 +26,7 @@ Interceptor_Internal::Interceptor_Internal() {
 
 Interceptor_Internal::~Interceptor_Internal() {
 
+	Log("Cleaning up Interceptor...");
 	UniqueGuard guard_print(m_print_mutex);
 
 	switch (m_configuration.p_mode) {
@@ -38,6 +41,7 @@ Interceptor_Internal::~Interceptor_Internal() {
 	}
 	
 	UniqueGuard guard_func_mutex(m_called_func_mutex);
+	delete m_logger;
 }
 
 Interceptor_Internal& Interceptor_Internal::get() {
@@ -45,8 +49,9 @@ Interceptor_Internal& Interceptor_Internal::get() {
 	return instance;
 }
 
-void Interceptor_Internal::init(void *_pAddress) {
-	Interceptor_Internal::get().m_symbol_resolver.init(_pAddress);
+
+void Interceptor_Internal::init() {
+	m_symbol_resolver.init(static_cast<void*>(DLLModuleHandle())); 	
 }
 
 void Interceptor_Internal::on_enter(void *_pa) {
@@ -54,6 +59,7 @@ void Interceptor_Internal::on_enter(void *_pa) {
 }
 
 void Interceptor_Internal::on_exit(void *_pa) {
+
 	Interceptor_Internal::get().on_exit_internal(_pa);
 }
 

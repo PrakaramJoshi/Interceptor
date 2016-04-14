@@ -66,6 +66,15 @@
     <ClInclude Include="Utils\NonRecursiveLock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Utils\MemoryCache.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\Logger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\BlockingQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

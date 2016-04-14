@@ -2,6 +2,7 @@
 #include "CallGraphHTML.h"
 #include "InterceptorUtils.h"
 #include "Interceptor_Internal.h"
+#include "Logger.h"
 #include <fstream>
 #include<iostream>
 #include <set>
@@ -10,7 +11,7 @@
 #include<sstream>
 #include <Windows.h>
 using namespace Interceptor;
-
+using namespace AceLogger;
 
 Interceptor::CallGraphRecorder::CallGraphRecorder() {
 }
@@ -51,6 +52,7 @@ void CallGraphRecorder::record_lazy(void *_pa,
 
 
 void CallGraphRecorder::populate_lazy_data() {
+	Log("updating symbols for lazy data collection...");
 	for (auto &thread : m_lazy_records) {
 		for (auto &thread_data : thread.second) {
 			auto pa = thread_data.get_pa();
@@ -59,6 +61,7 @@ void CallGraphRecorder::populate_lazy_data() {
 			record(fn_name, fn_file_name, thread.first, thread_data.get_call_status());
 		}
 	}
+	Log("lazy symbols evaluated!");
 }
 
 void Interceptor::CallGraphRecorder::print() {
@@ -129,6 +132,7 @@ void AddCallData(std::string& str, const std::string& oldStr, const std::string&
 }
 
 void CallGraphRecorder::create_force_layout_chart(const CALL_GRAPH &_call_graph) {
+	Log("creating force layout chart...");
 	std::string html_data = get_header_force_layout(_call_graph) + get_connectivity_force_layout(_call_graph);
 	auto str = Interceptor::html_call_graph_force_diagram;
 	html_data = R"(")" + html_data + R"(")";
@@ -142,6 +146,7 @@ void CallGraphRecorder::create_force_layout_chart(const CALL_GRAPH &_call_graph)
 
 std::string CallGraphRecorder::get_package_names_dependency_graph(const CALL_GRAPH &_call_graph,
 																std::map<string_id,std::size_t> &_id)const {
+	Log("generating the package names for the dependency wheel...");
 	std::size_t id = 0;
 	std::set<string_id> function_names;
 	for (auto &call : _call_graph) {
@@ -167,6 +172,8 @@ std::string CallGraphRecorder::get_package_names_dependency_graph(const CALL_GRA
 
 std::string CallGraphRecorder::get_connectivity_matrix_dependency_graph(const CALL_GRAPH &_call_graph,
 																		std::map<string_id, std::size_t> &_id)const {
+
+	Log("creating connectivity matrix for the dependency wheel...");
 	std::stringstream str;
 	std::map<std::size_t, std::map<std::size_t, std::size_t> > matrix;
 
@@ -201,7 +208,7 @@ std::string CallGraphRecorder::get_connectivity_matrix_dependency_graph(const CA
 }
 
 void CallGraphRecorder::create_dependency_graph(const CALL_GRAPH &_call_graph) {
-
+	Log("creating dependency wheel");
 	auto str = Interceptor::html_call_dependency;
 	std::map<std::size_t, string_id> ids;
 	auto package_names = get_package_names_dependency_graph(_call_graph,ids);
@@ -216,7 +223,7 @@ void CallGraphRecorder::create_dependency_graph(const CALL_GRAPH &_call_graph) {
 }
 
 void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
-
+	Log("creating call chart...");
 	{
 		UniqueGuard guard_lazy_record_lock(m_lazy_record_lock);
 		if (!m_lazy_records.empty()) {
@@ -227,6 +234,8 @@ void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
 	UniqueGuard guard_lock(m_lock);
 	
 	CALL_GRAPH call_graph;
+	Log("creating call graph...");
+
 	for (auto &call_stacks : m_call_stack_records) {
 		get_call_chart(call_stacks.second, call_graph, _mode);
 	}
@@ -241,10 +250,11 @@ void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
 		default:
 			break;
 	}
-
+	Log("chart creation complete");
 }
 
 std::string CallGraphRecorder::get_header_force_layout(const CALL_GRAPH &_call_graph)const {
+	Log("generating header for the force layout chart...");
 	std::set<string_id> function_names;
 	for (auto &call : _call_graph) {
 		function_names.insert(call.first);
@@ -266,6 +276,7 @@ std::string CallGraphRecorder::get_header_force_layout(const CALL_GRAPH &_call_g
 }
 
 std::string CallGraphRecorder::get_connectivity_force_layout(const CALL_GRAPH &_call_graph)const {
+	Log("generating connectivity data for the force layout...");
 	std::stringstream str;
 	for (auto &call : _call_graph) {
 		auto fn1 = m_string_indexer[call.first];

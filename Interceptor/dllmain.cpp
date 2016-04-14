@@ -8,7 +8,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	switch (ul_reason_for_call) {
 		case DLL_PROCESS_ATTACH:
 			//Loads the symbols of the module
-			Interceptor::Interceptor_Internal::init(hModule);
+			Interceptor::DLLModuleHandle() = hModule;
 			break;
 		case DLL_THREAD_ATTACH:
 		case DLL_THREAD_DETACH:
