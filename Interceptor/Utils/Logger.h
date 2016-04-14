@@ -214,13 +214,16 @@ namespace AceLogger
 			}
 
 			dir += "\\";
-			dir += startTime;
-			dir += "_Log.log";
-			ofsLog.open(dir.c_str());
-			ofsLog << "Header size = 4\n" ;
-			ofsLog << "Log version = 2.0\n" ;
-			ofsLog << _version <<"\n";
-			ofsLog << "start time " << _starttime << "\n";
+			dir += _toolName+".log";
+			ofsLog.open(dir.c_str(), std::fstream::in | std::fstream::out | std::fstream::app);
+			ofsLog << "---------------------------------------------------------\n";
+			ofsLog << "Header size \t\t\t= 6\n" ;
+			ofsLog << "Log version	\t\t= 3.0\n" ;
+			ofsLog << "Application name \t\t= " << _toolName<<"\n";
+			ofsLog << "Application version \t\t= " << _version <<"\n";
+			ofsLog << "platform	\t\t= " << _platform << "\n";
+			ofsLog << "start time \t\t\t= " << _starttime << "\n";
+			ofsLog << "---------------------------------------------------------\n";
 		}
 		virtual void show(const std::string &_text) {
 			ofsLog << _text << std::endl;
