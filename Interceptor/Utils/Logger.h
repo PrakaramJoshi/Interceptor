@@ -14,12 +14,13 @@
 #include <filesystem>
 #include "NonRecursiveLock.h"
 #include "BlockingQueue.h"
-#include "MemoryCache.h"
+#if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__))
 #include <Windows.h>
+#endif
 namespace AceLogger
 {
 
-	enum MessageType{LOG_STATUS,LOG_ERROR,LOG_WARNING};
+	enum class MessageType{LOG_STATUS,LOG_ERROR,LOG_WARNING};
 
 	struct Message{
 		std::string p_msg;
@@ -32,7 +33,13 @@ namespace AceLogger
 				const MessageType &_messageType) :
 			p_msg(_msg), p_messageType(_messageType){
 		};
+		Message(std::string &&_msg,
+			const MessageType &_messageType) :
+			p_msg(std::move(_msg)), p_messageType(_messageType) {
+
+		}
 	};
+
 	inline std::tm localtime(std::time_t const & time) {
 		std::tm tm_snapshot;
 #if (defined(__MINGW32__) || defined(__MINGW64__))
@@ -44,26 +51,7 @@ namespace AceLogger
 #endif
 		return tm_snapshot;
 	}
-	std::string static time_stamp_file_name() {
 
-		std::ostringstream s;
-
-		std::time_t t = std::time(NULL);
-		std::tm timeinfo = AceLogger::localtime(t);
-
-		s << timeinfo.tm_mon + 1 
-			<< "." 
-			<< timeinfo.tm_mday 
-			<< "." 
-			<< timeinfo.tm_year + 1900 
-			<< " " 
-			<< timeinfo.tm_hour 
-			<< "." 
-			<< timeinfo.tm_min 
-			<< "." 
-			<< timeinfo.tm_sec;
-		return s.str();
-	}
 	// fwd declaration required for LogView class
 	void ResetErrorCount();
 	void ResetWarningCount();
@@ -193,7 +181,7 @@ namespace AceLogger
 				_version,
 				_platform,
 				_path);
-			std::string startTime = time_stamp_file_name();
+
 			std::string dir = _path + "\\";
 			dir += _toolName;
 			
@@ -262,8 +250,6 @@ namespace AceLogger
 
 		std::atomic<size_t>		m_pending_logs;
 
-		MemoryCache<Message>	m_message_cache;
-
 		BlockingQueue<Message>	m_logMsgBuffer;
 	public:
 		
@@ -275,14 +261,26 @@ namespace AceLogger
 		};
 
 		static void DeInit() {
+			bool did_log_thread_exit_unexpected = false;
+#if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__))
 			DWORD result = WaitForSingleObject(GetInstance()->m_loggingThread->native_handle(), 0);
 
 			if (result == WAIT_OBJECT_0) {
 				// the thread handle is signaled - the thread has terminated
+				did_log_thread_exit_unexpected = true;
+			}
+			else{
+				// the thread handle is not signaled - the thread is still alive
+			}
+#endif
+			
+			if (did_log_thread_exit_unexpected) {
+				// no point waiting for the log thread to finish
+				// perform finish log in the current thread
 				GetInstance()->finish_log_current_thread();
 			}
 			else {
-				// the thread handle is not signaled - the thread is still alive
+				
 				GetInstance()->finish_log();
 				GetInstance()->m_loggingThread->join();
 				delete GetInstance()->m_loggingThread;
@@ -359,7 +357,7 @@ namespace AceLogger
 		}
 
 		void init() {
-			m_message_cache.fill_cache();
+			
 			try {
 				m_loggingThread = new std::thread(std::bind(&AceLogger::Logger::LogMessage_Internal,
 					this));
@@ -421,9 +419,6 @@ namespace AceLogger
 
 		}
 
-		Message * get_message_ptr() {
-			return m_message_cache.get_mem();
-		}
 	private:
 		~Logger(){
 			
@@ -467,6 +462,29 @@ namespace AceLogger
 				m_username = std::string(username);
 			}
 		}
+
+		void log_counts() {
+			std::string timeStamp = GetTimeString();
+			std::stringstream str;
+			
+			std::string message = timeStamp+" [STATUS]:\tTotal status messages: ";
+			str << m_statusCount.load();
+			message.append(str.str());
+			m_default_file_view.show(message);
+
+			str.str("");
+			message = timeStamp + " [STATUS]:\tTotal warn messages: ";
+			str << m_warningCount.load();
+			message.append(str.str());
+			m_default_file_view.show(message);
+
+			str.str("");
+			message = timeStamp + " [STATUS]:\tTotal error messages: ";
+			str << m_errorCount.load();
+			message.append(str.str());
+			m_default_file_view.show(message);
+		}
+
 		void inline LogMessage_Internal() {
 			Message *message = nullptr;
 			while (m_logMsgBuffer.Remove(&message)) {
@@ -495,18 +513,18 @@ namespace AceLogger
 				catch (...) {
 					throw std::runtime_error("logging system encountered runtime error");
 				}
-				m_message_cache.add_to_cache(message);
+				delete message;
 				m_pending_logs.fetch_sub(1);
 			}
+			log_counts();
+			
 		};
 		
 	};
 	
 	void static Log(std::string _msg,
 					MessageType _type=MessageType::LOG_STATUS){
-		auto msg = Logger::GetInstance()->get_message_ptr();
-		msg->p_msg= std::move(_msg);
-		msg->p_messageType = _type;
+		auto msg = new Message(std::move(_msg), _type);
 		Logger::GetInstance()->add_log(msg);
 	};
 
