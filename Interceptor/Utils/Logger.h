@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
-#include <regex>
 #include <atomic>
 #include <functional>
 #include <thread>

@@ -14,12 +14,17 @@ using namespace Interceptor;
 using namespace AceLogger;
 
 Interceptor::CallGraphRecorder::CallGraphRecorder() {
+	m_mode = RecordType::NONE;
 }
 
 Interceptor::CallGraphRecorder::~CallGraphRecorder() {
 
 	UniqueGuard guard_lock(m_lock);
 	UniqueGuard guard_lazy_record_lock(m_lazy_record_lock);
+}
+
+void CallGraphRecorder::set_record_type(RecordType _mode) {
+	m_mode = _mode;
 }
 
 void CallGraphRecorder::record(const std::string &_function_name,
@@ -39,7 +44,32 @@ void CallGraphRecorder::record(const std::string &_function_name,
 
 	auto fn_id = m_string_indexer.record(_function_name);
 	auto fn_file_id = m_string_indexer.record(_function_file_path);
-	m_call_stack_records[_thread_id].emplace_back(CallStackRecord(fn_id, fn_file_id, _call_status));
+	auto iter = m_call_stack_records.find(_thread_id);
+	if (iter != m_call_stack_records.end()) {
+		if (!(*iter).second.empty()) {
+			CallStackRecord call_record(fn_id, fn_file_id, _call_status);
+			auto & last_record = (*iter).second.back();
+			if (last_record.first == call_record) {
+				last_record.second = last_record.second + 1;
+				return;
+			}
+		}
+	}
+	m_call_stack_records[_thread_id].emplace_back(std::make_pair(CallStackRecord(fn_id, fn_file_id, _call_status),1));
+}
+
+void CallGraphRecorder::record_now(void *_pa,
+	CALL_STATUS _call_status) {
+	auto thread_id = std::this_thread::get_id();
+	std::string fn_name = "";
+	std::string fn_file_name = "";
+	if (m_mode == RecordType::FILE) {
+		fn_file_name = Interceptor_Internal::get().get_function_file_internal(_pa);
+	}
+	else if (m_mode == RecordType::FUNCTION) {
+		fn_name = Interceptor_Internal::get().get_function_name_internal(_pa);
+	}
+	record(fn_name, fn_file_name, thread_id, _call_status);
 }
 
 void CallGraphRecorder::record_lazy(void *_pa,
@@ -56,8 +86,14 @@ void CallGraphRecorder::populate_lazy_data() {
 	for (auto &thread : m_lazy_records) {
 		for (auto &thread_data : thread.second) {
 			auto pa = thread_data.get_pa();
-			auto fn_name = Interceptor_Internal::get().get_function_name_internal(pa);
-			auto fn_file_name = Interceptor_Internal::get().get_function_file_internal(pa);
+			std::string fn_name = "";
+			std::string fn_file_name = "";
+			if (m_mode == RecordType::FILE) {
+				fn_file_name  = Interceptor_Internal::get().get_function_file_internal(pa);
+			}
+			else if (m_mode == RecordType::FUNCTION) {
+				fn_name = Interceptor_Internal::get().get_function_name_internal(pa);
+			}
 			record(fn_name, fn_file_name, thread.first, thread_data.get_call_status());
 		}
 	}
@@ -68,57 +104,58 @@ void Interceptor::CallGraphRecorder::print() {
 
 }
 
-void get_call_chart(const std::vector<CallStackRecord> &_call_stack,
+void get_call_chart(const std::vector<std::pair<CallStackRecord,std::size_t> > &_call_stack,
 	CALL_GRAPH &_call_graph,
-	const InterceptorMode _mode) {
+	const RecordType _mode) {
 	if (_call_stack.empty())
 		return;
 
 	std::stack<string_id> call_stack;
 	
 	for (auto &call_record : _call_stack) {
-		if (call_record.get_call_status() == CALL_STATUS::CALL_IN) {
-			string_id caller = 0;
-			bool caller_found = false;
-			if (!call_stack.empty()) {
-				caller = call_stack.top();
-				caller_found = true;
-			}
-
-			Interceptor::string_id callee;
-			if (_mode == Interceptor::InterceptorMode::CALL_DIAGRAM_FILES ) {
-				callee = call_record.get_file_data();
-			}
-			else if (_mode == Interceptor::InterceptorMode::CALL_DIAGRAM_FUNCTION ||
-				_mode == Interceptor::InterceptorMode::CALL_DEPENDENCY_FUNCTION) {
-				callee = call_record.get_function_name();
-			}
-			else {
-				std::cout << "ERROR	:	unknown InterceptorMode!" << std::endl;
-			}
-
-			call_stack.push(callee);
-			if (caller_found) {
-				auto iter = _call_graph.find(caller);
-				if (iter == _call_graph.end()) {
-					_call_graph[caller][callee] = 1;
+		auto count = call_record.second;
+		while (count > 0) {
+			count--;
+			if (call_record.first.get_call_status() == CALL_STATUS::CALL_IN) {
+				string_id caller ;
+				bool caller_found = false;
+				if (!call_stack.empty()) {
+					caller = call_stack.top();
+					caller_found = true;
 				}
-				else {
-					auto callee_iter = iter->second.find(callee);
-					if (callee_iter == iter->second.end()) {
-						iter->second[callee] = 1;
+
+				Interceptor::string_id callee;
+				if (_mode == Interceptor::RecordType::FILE) {
+					callee = call_record.first.get_file_data();
+				}
+				else if (_mode == Interceptor::RecordType::FUNCTION) {
+					callee = call_record.first.get_function_name();
+				}
+
+				call_stack.push(callee);
+				if (caller_found) {
+					auto iter = _call_graph.find(caller);
+					if (iter == _call_graph.end()) {
+						_call_graph[caller][callee] = 1;
 					}
 					else {
-						++(callee_iter->second);
+						auto callee_iter = iter->second.find(callee);
+						if (callee_iter == iter->second.end()) {
+							iter->second[callee] = 1;
+						}
+						else {
+							++(callee_iter->second);
+						}
 					}
 				}
+
 			}
-			
+			else {
+				if (!call_stack.empty())
+					call_stack.pop();
+			}
 		}
-		else {
-			if(!call_stack.empty())
-				call_stack.pop();
-		}
+		
 	}
 }
 
@@ -210,7 +247,7 @@ std::string CallGraphRecorder::get_connectivity_matrix_dependency_graph(const CA
 void CallGraphRecorder::create_dependency_graph(const CALL_GRAPH &_call_graph) {
 	Log("creating dependency wheel");
 	auto str = Interceptor::html_call_dependency;
-	std::map<std::size_t, string_id> ids;
+	std::map<string_id,std::size_t> ids;
 	auto package_names = get_package_names_dependency_graph(_call_graph,ids);
 	auto matrix = get_connectivity_matrix_dependency_graph(_call_graph, ids);
 	AddCallData(str, html_package_names_key, package_names);
@@ -237,7 +274,7 @@ void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
 	Log("creating call graph...");
 
 	for (auto &call_stacks : m_call_stack_records) {
-		get_call_chart(call_stacks.second, call_graph, _mode);
+		get_call_chart(call_stacks.second, call_graph, m_mode);
 	}
 	switch (_mode) {
 		case Interceptor::CALL_DIAGRAM_FUNCTION:

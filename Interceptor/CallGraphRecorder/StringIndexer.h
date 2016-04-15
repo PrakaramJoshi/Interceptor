@@ -2,8 +2,13 @@
 #include <map>
 #include <string>
 #include <map>
+//#define _STRING_INDEXER_SHOW_STRING
 namespace Interceptor {
+#ifdef _STRING_INDEXER_SHOW_STRING
+	using string_id = std::string;
+#else
 	using string_id = std::size_t;
+#endif;
 
 	class StringIndexer {
 
@@ -11,9 +16,11 @@ namespace Interceptor {
 
 		std::map<string_id,std::string> m_id_to_string;
 
-		std::size_t m_current_id;
+		string_id m_current_id;
 
 		std::size_t m_redundancy;
+
+		string_id get_next_id(const std::string &_str);
 
 	public:
 

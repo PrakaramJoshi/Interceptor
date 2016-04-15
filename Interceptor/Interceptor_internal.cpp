@@ -22,6 +22,14 @@ Interceptor_Internal::Interceptor_Internal() {
 			m_configuration.p_record_mode = RecordMode::LAZY;
 		}
 	}
+	RecordType record_type = RecordType::NONE;
+	if (m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FILES)
+		record_type = RecordType::FILE;
+	else if (m_configuration.p_mode == InterceptorMode::CALL_DEPENDENCY_FUNCTION||
+		m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FUNCTION){
+		record_type = RecordType::FUNCTION;
+	}
+	m_call_graph_recorder.set_record_type(record_type);
 }
 
 Interceptor_Internal::~Interceptor_Internal() {
@@ -82,9 +90,7 @@ void Interceptor_Internal::on_enter_call_diagram_mode(void *_pa) {
 		m_call_graph_recorder.record_lazy(_pa, CALL_STATUS::CALL_IN);
 	}
 	else if (m_configuration.p_record_mode == RecordMode::REALTIME) {
-		auto fn_name = get_function_name_internal(_pa);
-		auto fn_file_name = get_function_file_internal(_pa);
-		m_call_graph_recorder.record(fn_name, fn_file_name, CALL_STATUS::CALL_IN);
+		m_call_graph_recorder.record_now(_pa, CALL_STATUS::CALL_IN);
 	}
 }
 
@@ -94,9 +100,7 @@ void Interceptor_Internal::on_exit_call_diagram_mode(void *_pa) {
 		m_call_graph_recorder.record_lazy(_pa, CALL_STATUS::CALL_OUT);
 	}
 	else if (m_configuration.p_record_mode == RecordMode::REALTIME) {
-		auto fn_name = get_function_name_internal(_pa);
-		auto fn_file_name = get_function_file_internal(_pa);
-		m_call_graph_recorder.record(fn_name, fn_file_name, CALL_STATUS::CALL_OUT);
+		m_call_graph_recorder.record_now(_pa, CALL_STATUS::CALL_OUT);
 	}
 
 }

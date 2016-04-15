@@ -1,4 +1,5 @@
 #pragma once
+#include <list>
 #include <map>
 #include <mutex>
 #include <thread>
@@ -11,9 +12,10 @@
 #include <atomic>
 namespace Interceptor {
 	typedef std::map<string_id, std::map<string_id, std::size_t> > CALL_GRAPH;
+	enum class RecordType{ FUNCTION,	FILE,	NONE};
 	class CallGraphRecorder {
 		
-		std::map<std::thread::id,std::vector<CallStackRecord > > m_call_stack_records;
+		std::map<std::thread::id,std::vector<std::pair<CallStackRecord,std::size_t>  > > m_call_stack_records;
 
 		std::map<std::thread::id, std::vector<CallStackLazyRecord> > m_lazy_records;
 
@@ -22,6 +24,8 @@ namespace Interceptor {
 		NonRecursiveLock m_lazy_record_lock;
 
 		std::atomic<bool >m_mutex_locked;
+
+		RecordType m_mode;
 
 		mutable StringIndexer m_string_indexer;
 
@@ -41,11 +45,6 @@ namespace Interceptor {
 
 		void populate_lazy_data();
 
-	public:
-		CallGraphRecorder();
-
-		~CallGraphRecorder();
-
 		void record(const std::string &_function_name,
 			const std::string &_function_file_path,
 			CALL_STATUS _call_status = CALL_STATUS::CALL_IN);
@@ -55,7 +54,17 @@ namespace Interceptor {
 			const std::thread::id &_thread_id,
 			CALL_STATUS _call_status = CALL_STATUS::CALL_IN);
 
+	public:
+		CallGraphRecorder();
+
+		~CallGraphRecorder();
+
+		void set_record_type(RecordType _mode);
+
 		void record_lazy (void *_pa,
+			CALL_STATUS _call_status = CALL_STATUS::CALL_IN);
+
+		void record_now(void *_pa,
 			CALL_STATUS _call_status = CALL_STATUS::CALL_IN);
 
 		void print();

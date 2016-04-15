@@ -16,6 +16,8 @@ namespace Interceptor {
 			const string_id &_function_file_path,
 			CALL_STATUS _call_status = CALL_STATUS::CALL_IN);
 
+		bool operator ==(const CallStackRecord &_record)const;
+
 		string_id get_function_name()const;
 
 		string_id get_file_data()const;

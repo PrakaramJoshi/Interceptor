@@ -6,7 +6,6 @@
 #include <thread>
 #include <queue>
 #include <atomic>
-#include <numeric>
 
 template<class QueueData>class BlockingQueue
 {

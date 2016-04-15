@@ -163,6 +163,7 @@
       <AdditionalIncludeDirectories>.;./CallGraphRecorder;./SymbolResolver;./Utils;</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <AdditionalOptions>/EHar %(AdditionalOptions)</AdditionalOptions>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
