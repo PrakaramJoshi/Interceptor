@@ -137,14 +137,14 @@ BOOL CALLBACK EnumModules(
 	return TRUE;
 }
 
-BOOL CALLBACK EnumModules(
-	PCTSTR  ModuleName,
-	DWORD64 BaseOfDll,
-	PVOID   UserContext) {
-	UNREFERENCED_PARAMETER(UserContext);
-	modules.emplace_back(Module_native(std::string((LPCSTR)ModuleName), BaseOfDll));
-	return TRUE;
-}
+//BOOL CALLBACK EnumModules(
+//	PCTSTR  ModuleName,
+//	DWORD64 BaseOfDll,
+//	PVOID   UserContext) {
+//	UNREFERENCED_PARAMETER(UserContext);
+//	modules.emplace_back(Module_native(std::string((LPCSTR)ModuleName), BaseOfDll));
+//	return TRUE;
+//}
 
 void SymbolResolver::load_modules() {
 	modules.clear();
