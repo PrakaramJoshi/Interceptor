@@ -57,7 +57,14 @@ std::string SymbolDB::get_most_relevant_module_name(const std::string &_fn_name)
 	index = m.find_last_of("::");
 	if (index == std::string::npos)
 		return m;
-	return m.substr(index + 1);
+	m = m.substr(index + 1);
+	index = m.find("`");
+	if(index!=std::string::npos)
+		m.erase(index, 1);
+	index = m.find("'");
+	if (index != std::string::npos)
+		m.erase(index, 1);
+	return m;
 }
 
 void SymbolDB::load_modules(const std::vector<Module_native> &_modules) {

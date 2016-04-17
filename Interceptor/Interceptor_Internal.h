@@ -36,6 +36,8 @@ namespace Interceptor {
 
 		SymbolDB							m_symboldb;
 
+		std::set<string_id>					m_suppressed_ids;
+
 		AceLogger::register_logger_helper *	m_logger;
 
 		string_id get_function_name_internal(void *_pa);

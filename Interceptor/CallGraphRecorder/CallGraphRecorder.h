@@ -16,17 +16,19 @@ namespace Interceptor {
 	
 	class CallGraphRecorder {
 		
-		std::map<std::thread::id,std::vector<std::pair<CallStackRecord,std::size_t>  > > m_call_stack_records;
+		std::map<std::thread::id,std::vector<std::pair<CallStackRecord,std::size_t>  > >	m_call_stack_records;
 
-		std::map<std::thread::id, std::vector<CallStackLazyRecord> > m_lazy_records;
+		std::map<std::thread::id, std::vector<CallStackLazyRecord> >						m_lazy_records;
 
-		NonRecursiveLock m_lock;
+		std::set<string_id>																	m_suppressed_ids;
 
-		NonRecursiveLock m_lazy_record_lock;
+		NonRecursiveLock																	m_lock;
 
-		std::atomic<bool >m_mutex_locked;
+		NonRecursiveLock																	m_lazy_record_lock;
 
-		RecordType m_mode;
+		std::atomic<bool>																	m_mutex_locked;
+
+		RecordType																			m_mode;
 
 		std::string get_header_force_layout(const CALL_GRAPH &_call_graph)const;
 
@@ -55,6 +57,8 @@ namespace Interceptor {
 		CallGraphRecorder();
 
 		~CallGraphRecorder();
+
+		void suppress_ids(std::set<string_id> &_ids);
 
 		void set_record_type(RecordType _mode);
 

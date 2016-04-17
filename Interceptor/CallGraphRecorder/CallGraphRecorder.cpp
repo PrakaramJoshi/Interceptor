@@ -31,11 +31,22 @@ std::string CallGraphRecorder::get_string_from_id(const string_id &_id)const {
 	return Interceptor_Internal::get().get_string_from_id(_id);
 }
 
+void CallGraphRecorder::suppress_ids(std::set<string_id> &_ids) {
+	m_suppressed_ids = _ids;
+}
+
 void CallGraphRecorder::record_compression(const string_id &_function_name,
 	const string_id &_function_file_path,
 	const std::thread::id &_thread_id,
 	CALL_STATUS _call_status) {
-
+	if (m_mode == RecordType::FILE) {
+		if (m_suppressed_ids.find(_function_file_path) != m_suppressed_ids.end())
+			return;
+	}
+	else if (m_mode == RecordType::FUNCTION) {
+		if (m_suppressed_ids.find(_function_name) != m_suppressed_ids.end())
+			return;
+	}
 	UniqueGuard guard_lock(m_lock);
 	auto fn_id = _function_name;
 	auto fn_file_id = _function_file_path;

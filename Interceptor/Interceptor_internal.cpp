@@ -30,6 +30,13 @@ Interceptor_Internal::Interceptor_Internal() {
 	if (m_configuration.p_record_mode == RecordMode::PRELOAD_FUNCTIONS) {
 		m_symboldb.cache_all_data(m_configuration);
 	}
+	for (auto& s : m_configuration.p_suppress_file_names) {
+		m_suppressed_ids.insert(m_symboldb.get_id(s));
+	}
+	for (auto& s : m_configuration.p_suppress_function_names) {
+		m_suppressed_ids.insert(m_symboldb.get_id(s));
+	}
+	m_call_graph_recorder.suppress_ids(m_suppressed_ids);
 }
 
 Interceptor_Internal::~Interceptor_Internal() {
@@ -148,15 +155,12 @@ void Interceptor_Internal::on_exit_internal(void *_pa) {
 void Interceptor_Internal::print_to_console(const std::size_t &_stack_depth,
 											const string_id &_symbol_id,
 											bool _in) {
-
+	if (m_suppressed_ids.find(_symbol_id) != m_suppressed_ids.end()) {
+		return;
+	}
 	auto symbol_name = m_symboldb.get_string_from_id(_symbol_id);
 	if (symbol_name.empty())
 		return;
-	for (auto &_disbled_stuff : m_configuration.p_suppress_function_names) {
-		if (symbol_name.find(_disbled_stuff) != std::string::npos) {
-			return;
-		}
-	}
 	std::string out_str = "";
 	for (auto i = _stack_depth; i > 0; i--) {
 		out_str.append("-");
