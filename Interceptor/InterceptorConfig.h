@@ -3,26 +3,30 @@
 #include<vector>
 #include <map>
 namespace Interceptor {
-	enum InterceptorMode	{	IMMEDIATE_PRINT,	CALL_DIAGRAM_FUNCTION,	CALL_DIAGRAM_FILES,
-								CALL_DEPENDENCY_FUNCTION
+	enum InterceptorMode	{	IMMEDIATE_PRINT,	FORCE_DIAGRAM,	DEPENDENCY_WHEEL
 									,TOTAL_INTERCEPTOR_MODES };
 
 	enum RecordMode		{	REALTIME,	LAZY,	NOT_RECORDING,PRELOAD_FUNCTIONS, TOTAL_RECORD_MODES };
 
 	enum NamesNormalization { PURE, NORMALIZED, TOTAL_FUNCTION_NAMES };
 
-	const std::string InterceptorModeStr[InterceptorMode::TOTAL_INTERCEPTOR_MODES] = { "IMMEDIATE_PRINT", "CALL_DIAGRAM_FUNCTION" ,"CALL_DIAGRAM_FILES",
-																					"CALL_DEPENDENCY_FUNCTION" };
+	enum RecordType { FUNCTION, FILE, TOTAL_RECORD_TYPES };
+
+	const std::string InterceptorModeStr[InterceptorMode::TOTAL_INTERCEPTOR_MODES] = { "IMMEDIATE_PRINT", "FORCE_DIAGRAM" ,"DEPENDENCY_WHEEL" };
 
 	const std::string RecordModeStr[RecordMode::TOTAL_RECORD_MODES] = { "REALTIME", "LAZY","NOT_RECORDING","PRELOAD_FUNCTIONS" };
 
 	const std::string NamesNormalizationStr[NamesNormalization::TOTAL_FUNCTION_NAMES] = { "PURE","NORMALIZED" };
+
+	const std::string RecordTypeStr[RecordType::TOTAL_RECORD_TYPES] = { "FUNCTION", "FILE" };
 
 	struct InterceptorConfiguration {
 
 		InterceptorMode						p_mode;
 
 		RecordMode							p_record_mode;
+
+		RecordType							p_record_type;
 
 		std::vector<std::string>			p_suppress_function_names;
 		

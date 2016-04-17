@@ -16,6 +16,7 @@
 #if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__))
 #include <Windows.h>
 #endif
+//#define LOG_IMMEDIATE
 namespace AceLogger
 {
 
@@ -241,6 +242,9 @@ namespace AceLogger
 		std::string				m_log_dir;
 
 		Interceptor::NonRecursiveLock			m_mutex;
+#ifdef LOG_IMMEDIATE
+		Interceptor::NonRecursiveLock			m_log_immediate_mutex;
+#endif
 		std::atomic<bool>		m_log_closed;
 
 		std::atomic<int>		m_errorCount;
@@ -259,7 +263,7 @@ namespace AceLogger
 			return instance;
 		};
 
-		static void DeInit() {
+		static bool Log_thread_exited() {
 			bool did_log_thread_exit_unexpected = false;
 #if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__))
 			DWORD result = WaitForSingleObject(GetInstance()->m_loggingThread->native_handle(), 0);
@@ -268,12 +272,16 @@ namespace AceLogger
 				// the thread handle is signaled - the thread has terminated
 				did_log_thread_exit_unexpected = true;
 			}
-			else{
+			else {
 				// the thread handle is not signaled - the thread is still alive
 			}
 #endif
+			return did_log_thread_exit_unexpected;
+		}
+
+		static void DeInit() {
 			
-			if (did_log_thread_exit_unexpected) {
+			if (Log_thread_exited()) {
 				// no point waiting for the log thread to finish
 				// perform finish log in the current thread
 				GetInstance()->finish_log_current_thread();
@@ -351,8 +359,13 @@ namespace AceLogger
 		}
 
 		void add_log(Message *_msg) {
+#ifdef LOG_IMMEDIATE
+			Interceptor::UniqueGuard lock(m_log_immediate_mutex);
+			Log_Internal(_msg);
+#else
 			m_pending_logs.fetch_add(1);
 			m_logMsgBuffer.Insert(_msg);
+#endif
 		}
 
 		void init() {
@@ -389,6 +402,9 @@ namespace AceLogger
 			if (m_log_closed)
 				return;
 			while (m_logMsgBuffer.Size() > 0|| get_pending_logs()>0){
+				if (Log_thread_exited()) {
+					finish_log_current_thread();
+				}
 				std::this_thread::sleep_for(std::chrono::microseconds(10));
 			}
 			m_default_file_view.flush();
@@ -484,34 +500,37 @@ namespace AceLogger
 			m_default_file_view.show(message);
 		}
 
+		void Log_Internal(Message *_message) {
+			if (!_message) {
+				return;
+			}
+			std::string timeStamp = GetTimeString();
+			std::string msgType = "[STATUS]:\t";
+			if ((_message)->p_messageType == MessageType::LOG_STATUS) {
+				m_statusCount++;
+			}
+			else if ((_message)->p_messageType == MessageType::LOG_ERROR) {
+				msgType = "[ERROR]:\t";
+				m_errorCount++;
+
+			}
+			else if ((_message)->p_messageType == MessageType::LOG_WARNING) {
+				msgType = "[WARNING]:\t";
+				m_warningCount++;
+			}
+			timeStamp.append(" ").append(msgType).append(_message->p_msg);
+			try {
+				m_default_file_view.show(timeStamp);
+			}
+			catch (...) {
+				throw std::runtime_error("logging system encountered runtime error");
+			}
+		}
+
 		void inline LogMessage_Internal() {
 			Message *message = nullptr;
 			while (m_logMsgBuffer.Remove(&message)) {
-				if (!message) {
-					m_pending_logs.fetch_sub(1);
-					continue;
-				}
-				std::string timeStamp = GetTimeString();
-				std::string msgType = "[STATUS]:\t";
-				if ((message)->p_messageType == MessageType::LOG_STATUS) {
-					m_statusCount++;
-				}
-				else if ((message)->p_messageType == MessageType::LOG_ERROR) {
-					msgType = "[ERROR]:\t";
-					m_errorCount++;
-
-				}
-				else if ((message)->p_messageType == MessageType::LOG_WARNING) {
-					msgType = "[WARNING]:\t";
-					m_warningCount++;
-				}
-				timeStamp.append(" ").append(msgType).append(message->p_msg);
-				try {
-					m_default_file_view.show(timeStamp);
-				}
-				catch (...) {
-					throw std::runtime_error("logging system encountered runtime error");
-				}
+				Log_Internal(message);
 				delete message;
 				m_pending_logs.fetch_sub(1);
 			}

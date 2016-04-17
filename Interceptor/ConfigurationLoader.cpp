@@ -40,6 +40,7 @@ InterceptorConfiguration ConfigurationLoader::create_default_configuration() {
 
 	config.p_file_normal["c:\\program files"] = "std_library";
 	config.p_record_mode = RecordMode::REALTIME;
+	config.p_record_type = RecordType::FUNCTION;
 	update_suppressed_container(config);
 
 	return config;
@@ -98,6 +99,9 @@ void ConfigurationLoader::update_configuration(InterceptorConfiguration &_config
 		else if (s.is_key_i("RecordMode")) {
 			update_record_mode(s.val(), _config);
 		}
+		else if (s.is_key_i("RecordType")) {
+			update_record_type(s.val(), _config);
+		}
 		else if (s.is_key_i("NameNormalization")) {
 			update_name_normalization(s.val(), _config);
 		}
@@ -134,6 +138,17 @@ void ConfigurationLoader::update_record_mode(const std::string &_mode,
 	for (auto i = 0; i < RecordMode::TOTAL_RECORD_MODES; i++) {
 		if (Utils::get_lower(RecordModeStr[i]) == mode) {
 			_config.p_record_mode = static_cast<RecordMode>(i);
+			break;
+		}
+	}
+}
+
+void ConfigurationLoader::update_record_type(const std::string &_mode,
+	InterceptorConfiguration &_config) {
+	auto mode = Utils::get_lower(_mode);
+	for (auto i = 0; i < RecordType::TOTAL_RECORD_TYPES; i++) {
+		if (Utils::get_lower(RecordTypeStr[i]) == mode) {
+			_config.p_record_type = static_cast<RecordType>(i);
 			break;
 		}
 	}

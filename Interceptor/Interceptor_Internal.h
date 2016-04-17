@@ -4,7 +4,7 @@
 #include "FunctionDepth.h"
 #include "InterceptorConfig.h"
 #include "Logger.h"
-#include "SymbolResolver.h"
+#include "SymbolDB.h"
 
 #include <map>
 #include <mutex>
@@ -26,29 +26,21 @@ namespace Interceptor {
 		Interceptor_Internal& operator=(Interceptor_Internal&&)		= delete;
 		Interceptor_Internal();
 
-		FuntionDepth					m_function_call_depth;
+		FuntionDepth						m_function_call_depth;
 
-		CallGraphRecorder				m_call_graph_recorder;
+		CallGraphRecorder					m_call_graph_recorder;
 
-		SymbolResolver					m_symbol_resolver;
+		NonRecursiveLock					m_print_mutex;
 
-		NonRecursiveLock				m_called_func_mutex;
+		InterceptorConfiguration			m_configuration;
 
-		NonRecursiveLock				m_print_mutex;
+		SymbolDB							m_symboldb;
 
-		std::map<void*, std::string>	m_function_name_cache;
+		AceLogger::register_logger_helper *	m_logger;
 
-		std::map<void*, std::string>	m_function_file_cache;
+		string_id get_function_name_internal(void *_pa);
 
-		InterceptorConfiguration		m_configuration;
-
-		AceLogger::register_logger_helper *m_logger;
-
-		std::string get_most_relevant_module_name(const std::string &_fn_name);
-
-		std::string get_function_name_internal(void *_pa);
-
-		std::string get_function_file_internal(void *_pa);
+		string_id get_function_file_internal(void *_pa);
 
 		void on_enter_immediate_print_mode(void *_pa);
 
@@ -62,9 +54,13 @@ namespace Interceptor {
 
 		void on_exit_internal(void *_pa);
 
-		void print_to_console(const std::size_t &_stack_depth, const std::string &_function_name, bool _in);
+		void print_to_console(const std::size_t &_stack_depth, 
+							const string_id &symbol_id, 
+							bool _in);
 
-		SymbolResolver& symbol_resolver() { return m_symbol_resolver; };
+		std::string get_string_from_id(const string_id &_id) {
+			return m_symboldb.get_string_from_id(_id);
+		}
 
 		InterceptorConfiguration& interceptor_configuration() { return m_configuration; };
 

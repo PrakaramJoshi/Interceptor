@@ -22,6 +22,9 @@ namespace Interceptor {
 		void update_record_mode(const std::string &_mode,
 			InterceptorConfiguration &_config);
 
+		void update_record_type(const std::string &_mode,
+			InterceptorConfiguration &_config);
+
 		void update_name_normalization(const std::string &_mode,
 			InterceptorConfiguration &_config);
 

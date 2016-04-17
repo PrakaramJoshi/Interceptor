@@ -4,9 +4,25 @@
 #include <set>
 namespace Interceptor {
 
+	struct SymbolFile {
+
+		string_id p_file_name;
+
+		bool operator<(const SymbolFile &_sym)const {
+			return p_file_name < _sym.p_file_name;
+		}
+	};
+
+	struct SymbolFileComparator {
+
+		bool operator()(const SymbolFile *_a, const SymbolFile *_b)const {
+			return (*_a) < (*_b);
+		}
+	};
+	
 	struct Symbol {
 
-		std::size_t p_id;
+		mutable SymbolFile *p_symbol_file;
 
 		string_id p_name;
 
@@ -14,14 +30,16 @@ namespace Interceptor {
 
 		ULONG64 p_address_upper;
 
+		Symbol() {
+			p_symbol_file = nullptr;
+		}
+
 		bool operator<(const Symbol &_sym)const {
 			return p_address < _sym.p_address;
 		}
 	};
 
 	struct Module {
-
-		std::size_t p_id;
 
 		string_id p_module_name;
 

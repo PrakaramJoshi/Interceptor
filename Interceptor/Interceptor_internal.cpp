@@ -14,30 +14,21 @@ Interceptor_Internal::Interceptor_Internal() {
 	init();
 	ConfigurationLoader configloader;
 	m_configuration = configloader.get_configuration();
-	if (m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FILES || 
-		m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FUNCTION||
-		m_configuration.p_mode == InterceptorMode::CALL_DEPENDENCY_FUNCTION) {
+	if (m_configuration.p_mode == InterceptorMode::FORCE_DIAGRAM || 
+		m_configuration.p_mode == InterceptorMode::DEPENDENCY_WHEEL) {
 		if (!(m_configuration.p_record_mode == RecordMode::LAZY || m_configuration.p_record_mode == RecordMode::REALTIME ||
 			m_configuration.p_record_mode == RecordMode::PRELOAD_FUNCTIONS)) {
-			std::cout << "Interceptor mode set to call diagram, but no recording specified, using default mode as Lazy" << std::endl;
+			Log("Interceptor mode set to call diagram, but no recording specified, using default mode as Lazy");
 			m_configuration.p_record_mode = RecordMode::LAZY;
 		}
 	}
-	if (m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FILES && m_configuration.p_record_mode == RecordMode::PRELOAD_FUNCTIONS) {
-		std::cout << "Preload functions is not available for files, changing to lazy mode" << std::endl;
-		Log("Preload functions is not available for files, changing to lazy mode");
-		m_configuration.p_record_mode = RecordMode::LAZY;
+	if (!(m_configuration.p_record_type == RecordType::FILE || m_configuration.p_record_type == RecordType::FUNCTION)) {
+		Log("No record type specified, using FUNCTION as default record type");
+		m_configuration.p_record_type = RecordType::FUNCTION;
 	}
-	RecordType record_type = RecordType::NONE;
-	if (m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FILES)
-		record_type = RecordType::FILE;
-	else if (m_configuration.p_mode == InterceptorMode::CALL_DEPENDENCY_FUNCTION||
-		m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FUNCTION){
-		record_type = RecordType::FUNCTION;
-	}
-	m_call_graph_recorder.set_record_type(record_type);
-	if (m_configuration.p_mode == RecordMode::PRELOAD_FUNCTIONS) {
-		m_call_graph_recorder.init_symbol_db(m_symbol_resolver,m_configuration);
+	m_call_graph_recorder.set_record_type(m_configuration.p_record_type);
+	if (m_configuration.p_record_mode == RecordMode::PRELOAD_FUNCTIONS) {
+		m_symboldb.cache_all_data(m_configuration);
 	}
 }
 
@@ -49,15 +40,12 @@ Interceptor_Internal::~Interceptor_Internal() {
 	switch (m_configuration.p_mode) {
 		case InterceptorMode::IMMEDIATE_PRINT:
 			break;
-		case InterceptorMode::CALL_DIAGRAM_FILES:
-		case InterceptorMode::CALL_DIAGRAM_FUNCTION:
-		case InterceptorMode::CALL_DEPENDENCY_FUNCTION:
+		case InterceptorMode::FORCE_DIAGRAM:
+		case InterceptorMode::DEPENDENCY_WHEEL:
 			m_call_graph_recorder.create_call_chart(m_configuration.p_mode);
 		default:
 			break;
 	}
-	
-	UniqueGuard guard_func_mutex(m_called_func_mutex);
 	delete m_logger;
 }
 
@@ -68,7 +56,7 @@ Interceptor_Internal& Interceptor_Internal::get() {
 
 
 void Interceptor_Internal::init() {
-	m_symbol_resolver.init(static_cast<void*>(DLLModuleHandle())); 	
+	m_symboldb.init(DLLModuleHandle());
 }
 
 void Interceptor_Internal::on_enter(void *_pa) {
@@ -81,29 +69,37 @@ void Interceptor_Internal::on_exit(void *_pa) {
 }
 
 void Interceptor_Internal::on_enter_immediate_print_mode(void *_pa) {
-	auto fn_name = get_function_name_internal(_pa);
+	string_id symbol_id;
+	if(m_configuration.p_record_type==RecordType::FUNCTION)
+		symbol_id = get_function_name_internal(_pa);
+	else {
+		symbol_id = get_function_file_internal(_pa);
+	}
 	auto current_depth = (++m_function_call_depth);
-	print_to_console(current_depth, fn_name, true);
+	print_to_console(current_depth, symbol_id, true);
 }
 
 void Interceptor_Internal::on_exit_immediate_print_mode(void *_pa) {
-	auto fn_name = get_function_name_internal(_pa);
+	string_id symbol_id;
+	if (m_configuration.p_record_type == RecordType::FUNCTION)
+		symbol_id = get_function_name_internal(_pa);
+	else {
+		symbol_id = get_function_file_internal(_pa);
+	}
 	auto current_depth = m_function_call_depth.load();
 	--m_function_call_depth;
-	print_to_console(current_depth, fn_name, false);
+	print_to_console(current_depth, symbol_id, false);
 }
 
 void Interceptor_Internal::on_enter_call_diagram_mode(void *_pa) {
 	
 	if (m_configuration.p_record_mode == RecordMode::LAZY) {
 		m_call_graph_recorder.record_lazy(_pa, CALL_STATUS::CALL_IN);
+		return;
 	}
-	else if (m_configuration.p_record_mode == RecordMode::REALTIME) {
-		m_call_graph_recorder.record_now(_pa, CALL_STATUS::CALL_IN);
-	}
-	else if (m_configuration.p_record_mode == RecordMode::PRELOAD_FUNCTIONS) {
-		m_call_graph_recorder.record_preloaded(_pa, CALL_STATUS::CALL_IN);
-	}
+	auto fn_id = get_function_name_internal(_pa);
+	auto fn_file_id = get_function_file_internal(_pa);
+	m_call_graph_recorder.record(fn_id, fn_file_id, CALL_STATUS::CALL_IN);
 }
 
 void Interceptor_Internal::on_exit_call_diagram_mode(void *_pa) {
@@ -111,12 +107,9 @@ void Interceptor_Internal::on_exit_call_diagram_mode(void *_pa) {
 	if (m_configuration.p_record_mode == RecordMode::LAZY) {
 		m_call_graph_recorder.record_lazy(_pa, CALL_STATUS::CALL_OUT);
 	}
-	else if (m_configuration.p_record_mode == RecordMode::REALTIME) {
-		m_call_graph_recorder.record_now(_pa, CALL_STATUS::CALL_OUT);
-	}
-	else if (m_configuration.p_record_mode == RecordMode::PRELOAD_FUNCTIONS) {
-		m_call_graph_recorder.record_preloaded(_pa, CALL_STATUS::CALL_OUT);
-	}
+	auto fn_id = get_function_name_internal(_pa);
+	auto fn_file_id = get_function_file_internal(_pa);
+	m_call_graph_recorder.record(fn_id, fn_file_id, CALL_STATUS::CALL_OUT);
 
 }
 
@@ -127,9 +120,8 @@ void Interceptor_Internal::on_enter_internal(void *_pa) {
 			on_enter_immediate_print_mode(_pa);
 			break;
 
-		case Interceptor::InterceptorMode::CALL_DIAGRAM_FUNCTION:
-		case Interceptor::InterceptorMode::CALL_DIAGRAM_FILES:
-		case Interceptor::InterceptorMode::CALL_DEPENDENCY_FUNCTION:
+		case Interceptor::InterceptorMode::FORCE_DIAGRAM:
+		case Interceptor::InterceptorMode::DEPENDENCY_WHEEL:
 			on_enter_call_diagram_mode(_pa);
 			break;
 		default:
@@ -144,9 +136,8 @@ void Interceptor_Internal::on_exit_internal(void *_pa) {
 			on_exit_immediate_print_mode(_pa);
 			break;
 
-		case Interceptor::InterceptorMode::CALL_DIAGRAM_FUNCTION:
-		case Interceptor::InterceptorMode::CALL_DIAGRAM_FILES:
-		case Interceptor::InterceptorMode::CALL_DEPENDENCY_FUNCTION:
+		case Interceptor::InterceptorMode::FORCE_DIAGRAM:
+		case Interceptor::InterceptorMode::DEPENDENCY_WHEEL:
 			on_exit_call_diagram_mode(_pa);
 			break;
 		default:
@@ -155,12 +146,14 @@ void Interceptor_Internal::on_exit_internal(void *_pa) {
 }
 
 void Interceptor_Internal::print_to_console(const std::size_t &_stack_depth,
-											const std::string &_function_name, 
+											const string_id &_symbol_id,
 											bool _in) {
-	if (_function_name.empty())
+
+	auto symbol_name = m_symboldb.get_string_from_id(_symbol_id);
+	if (symbol_name.empty())
 		return;
 	for (auto &_disbled_stuff : m_configuration.p_suppress_function_names) {
-		if (_function_name.find(_disbled_stuff) != std::string::npos) {
+		if (symbol_name.find(_disbled_stuff) != std::string::npos) {
 			return;
 		}
 	}
@@ -168,7 +161,7 @@ void Interceptor_Internal::print_to_console(const std::size_t &_stack_depth,
 	for (auto i = _stack_depth; i > 0; i--) {
 		out_str.append("-");
 	}
-	out_str.append(_function_name);
+	out_str.append(symbol_name);
 
 	UniqueGuard guard_print(m_print_mutex);
 	if (_in) {
@@ -184,45 +177,19 @@ void Interceptor_Internal::print_to_console(const std::size_t &_stack_depth,
 				out_str << std::endl;
 }
 
-std::string Interceptor_Internal::get_most_relevant_module_name(const std::string &_fn_name) {
-	auto index = _fn_name.find_last_of("::");
-	if (index == std::string::npos)
-		return _fn_name;
-	auto m = _fn_name.substr(0, index-1);
-	index = m.find_last_of("::");
-	if (index == std::string::npos)
-		return m;
-	return m.substr(index + 1);
+
+string_id Interceptor_Internal::get_function_name_internal(void *_pa) {
+	if (m_configuration.p_record_type == RecordType::FUNCTION) {
+		return m_symboldb.get_symbol_id(_pa, m_configuration);
+	}
+	std::string empty = "";
+	return m_symboldb.get_id(empty);
 }
 
-std::string Interceptor_Internal::get_function_name_internal(void *_pa) {
-	std::string fn = "";
-	UniqueGuard guard_func_mutex(m_called_func_mutex);
-	auto iter = m_function_name_cache.find(_pa);
-	if (iter == m_function_name_cache.end()) {
-		fn = m_symbol_resolver.get_function_name_from_symbols_library(_pa);
-		fn = m_configuration.get_function_normal_name(fn);
-		fn = get_most_relevant_module_name(fn);
-		m_function_name_cache[_pa] = fn;
+string_id Interceptor_Internal::get_function_file_internal(void *_pa) {
+	if (m_configuration.p_record_type == RecordType::FILE) {
+		return m_symboldb.get_symbol_file_id(_pa, m_configuration);
 	}
-	else {
-		fn = iter->second;
-	}
-	return fn;
-}
-
-std::string Interceptor_Internal::get_function_file_internal(void *_pa) {
-	std::string fn = "";
-	UniqueGuard guard_func_mutex(m_called_func_mutex);
-	auto iter = m_function_file_cache.find(_pa);
-	if (iter == m_function_file_cache.end()) {
-		fn =m_symbol_resolver.get_function_file_from_symbols_library(_pa);
-		fn = Utils::get_file_name_from_path(fn);
-		fn = m_configuration.get_file_normal_name(fn);
-		m_function_file_cache[_pa] = fn;
-	}
-	else {
-		fn = iter->second;
-	}
-	return fn;
+	std::string empty = "";
+	return m_symboldb.get_id(empty);
 }

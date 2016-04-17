@@ -14,7 +14,7 @@ using namespace Interceptor;
 using namespace AceLogger;
 
 Interceptor::CallGraphRecorder::CallGraphRecorder() {
-	m_mode = RecordType::NONE;
+
 }
 
 Interceptor::CallGraphRecorder::~CallGraphRecorder() {
@@ -23,23 +23,12 @@ Interceptor::CallGraphRecorder::~CallGraphRecorder() {
 	UniqueGuard guard_lazy_record_lock(m_lazy_record_lock);
 }
 
-void CallGraphRecorder::init_symbol_db(SymbolResolver &_symbol_resolver,
-	InterceptorConfiguration &_config) {
-	m_symbol_db.init(_symbol_resolver,
-		m_string_indexer,
-		_config);
-}
-
 void CallGraphRecorder::set_record_type(RecordType _mode) {
 	m_mode = _mode;
 }
 
-void CallGraphRecorder::record(const std::string &_function_name,
-	const std::string &_function_file_path,
-	CALL_STATUS _call_status) {
-
-	auto thread_id = std::this_thread::get_id();
-	record(_function_name, _function_file_path, thread_id, _call_status);
+std::string CallGraphRecorder::get_string_from_id(const string_id &_id)const {
+	return Interceptor_Internal::get().get_string_from_id(_id);
 }
 
 void CallGraphRecorder::record_compression(const string_id &_function_name,
@@ -85,47 +74,12 @@ void CallGraphRecorder::record_compression(const string_id &_function_name,
 	}
 	m_call_stack_records[_thread_id].emplace_back(std::make_pair(CallStackRecord(fn_id, fn_file_id, _call_status), 1));
 }
-void CallGraphRecorder::record(const std::string &_function_name,
-	const std::string &_function_file_path,
-	const std::thread::id &_thread_id,
-	CALL_STATUS _call_status) {
 
-	string_id fn_id;
-	string_id fn_file_id; 
-	{
-		UniqueGuard guard_lock(m_lock);
-
-		fn_id = m_string_indexer.record(_function_name);
-		fn_file_id = m_string_indexer.record(_function_file_path);
-	}
-	
-	record_compression(fn_id, fn_file_id, _thread_id, _call_status);
-}
-
-void CallGraphRecorder::record_now(void *_pa,
-	CALL_STATUS _call_status) {
+void CallGraphRecorder::record(const string_id &_fn_id,
+										const string_id &_file_id,
+										CALL_STATUS _call_status) {
 	auto thread_id = std::this_thread::get_id();
-	std::string fn_name = "";
-	std::string fn_file_name = "";
-	if (m_mode == RecordType::FILE) {
-		fn_file_name = Interceptor_Internal::get().get_function_file_internal(_pa);
-	}
-	else if (m_mode == RecordType::FUNCTION) {
-		fn_name = Interceptor_Internal::get().get_function_name_internal(_pa);
-	}
-	record(fn_name, fn_file_name, thread_id, _call_status);
-}
-
-void CallGraphRecorder::record_preloaded(void *_pa,
-	CALL_STATUS _call_status) {
-	auto thread_id = std::this_thread::get_id();
-	auto fn = m_symbol_db.get_symbol_id(_pa,
-		Interceptor_Internal::get().symbol_resolver(),
-		m_string_indexer,
-		Interceptor_Internal::get().interceptor_configuration());
-
-	auto fn_file_id = m_string_indexer.record("");
-	record_compression(fn, fn_file_id, thread_id, _call_status);
+	record_compression(_fn_id, _file_id, thread_id, _call_status);
 }
 
 void CallGraphRecorder::record_lazy(void *_pa,
@@ -141,16 +95,11 @@ void CallGraphRecorder::populate_lazy_data() {
 	Log("updating symbols for lazy data collection...");
 	for (auto &thread : m_lazy_records) {
 		for (auto &thread_data : thread.second) {
+
 			auto pa = thread_data.get_pa();
-			std::string fn_name = "";
-			std::string fn_file_name = "";
-			if (m_mode == RecordType::FILE) {
-				fn_file_name  = Interceptor_Internal::get().get_function_file_internal(pa);
-			}
-			else if (m_mode == RecordType::FUNCTION) {
-				fn_name = Interceptor_Internal::get().get_function_name_internal(pa);
-			}
-			record(fn_name, fn_file_name, thread.first, thread_data.get_call_status());
+			string_id fn_id = Interceptor_Internal::get().get_function_file_internal(pa);
+			string_id fn_file_id = Interceptor_Internal::get().get_function_name_internal(pa);
+			record_compression(fn_id, fn_file_id, thread.first, thread_data.get_call_status());
 		}
 	}
 	Log("lazy symbols evaluated!");
@@ -161,7 +110,7 @@ void Interceptor::CallGraphRecorder::print() {
 }
 
 void check_call_stack(const std::vector<std::pair<CallStackRecord, std::size_t> > &_call_stack) {
-	std::map<string_id, int> counts;
+	std::map<string_id, int64_t> counts;
 	for (auto &call : _call_stack) {
 		auto fn_name = call.first.get_function_name();
 		auto iter = counts.find(fn_name);
@@ -275,7 +224,7 @@ std::string CallGraphRecorder::get_package_names_dependency_graph(const CALL_GRA
 	for (auto iter = function_names.begin(); iter != function_names.end(); ++iter) {
 		auto nextIter = iter;
 		nextIter++;
-		auto fn_name = m_string_indexer[*iter];
+		auto fn_name = get_string_from_id(*iter);
 		if (fn_name.empty())
 			fn_name = "unknown_function";
 		str << "'" << fn_name << "'" << (nextIter == function_names.end() ? "" : ",");
@@ -356,11 +305,10 @@ void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
 		get_call_chart(call_stacks.second, call_graph, m_mode);
 	}
 	switch (_mode) {
-		case Interceptor::CALL_DIAGRAM_FUNCTION:
-		case Interceptor::CALL_DIAGRAM_FILES:
+		case Interceptor::FORCE_DIAGRAM:
 			create_force_layout_chart(call_graph);
 			break;
-		case Interceptor::CALL_DEPENDENCY_FUNCTION:
+		case Interceptor::DEPENDENCY_WHEEL:
 			create_dependency_graph(call_graph);
 			break;
 		default:
@@ -381,10 +329,10 @@ std::string CallGraphRecorder::get_header_force_layout(const CALL_GRAPH &_call_g
 	std::stringstream str;
 	str << function_names.size() << "|";
 	for (auto &function_name : function_names) {
-		str << m_string_indexer[function_name] << "|";
+		str << get_string_from_id(function_name) << "|";
 	}
 	for (auto &function_name : function_names) {
-		auto fn = m_string_indexer[function_name];
+		auto fn = get_string_from_id(function_name);
 		str << fn << ";" << fn << ";"<< 0.01 << "|";
 	}
 	
@@ -395,9 +343,9 @@ std::string CallGraphRecorder::get_connectivity_force_layout(const CALL_GRAPH &_
 	Log("generating connectivity data for the force layout...");
 	std::stringstream str;
 	for (auto &call : _call_graph) {
-		auto fn1 = m_string_indexer[call.first];
+		auto fn1 = get_string_from_id(call.first);
 		for (auto &call_details : call.second) {
-			auto fn2 = m_string_indexer[call_details.first];
+			auto fn2 = get_string_from_id(call_details.first);
 			str << fn1 << ";";
 			str << fn2 << ";" <<0.01<< "|";
 		}
