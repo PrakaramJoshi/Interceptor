@@ -32,21 +32,28 @@ _penter proc
 	lahf
 	; Store the volatile registers
 	PUSHREGS
+	sub rsp, 8+16
+	movdqu xmmword ptr[rsp], xmm0
+	sub rsp ,8
 	sub  rsp,28h 
 
 	; Get the return address of the function
 	mov  rcx,rsp
-	mov  rcx,qword ptr[rcx+68h]
+	mov  rcx,qword ptr[rcx+136]
 	;sub  rcx,5
 	
 	;call the function to get the name of the callee and caller	
 	call on_enter
 
-	add  rsp,28h 
+	add  rsp,28h
+	add rsp, 8 
+	movdqu xmm0, xmmword ptr[rsp]
+	add rsp, 8+ 16
 	;Restore the registers back by poping out
 	POPREGS
 	sahf
 	pop rax
+	
 	ret
 
 _penter endp
@@ -55,28 +62,33 @@ _penter endp
 ; _pexit procedure
 ;--------------------------------------------------------------------
 _pexit proc
-	
 	push rax
 	lahf
 	; Store the volatile registers
 	PUSHREGS
+	sub rsp, 8+16
+	movdqu xmmword ptr[rsp], xmm0
+	sub rsp ,8
 	sub  rsp,28h 
 
 	; Get the return address of the function
 	mov  rcx,rsp
-	mov  rcx,qword ptr[rcx+68h]
+	mov  rcx,qword ptr[rcx+136]
 	;sub  rcx,5
 	
 	;call the function to get the name of the callee and caller	
 	call on_exit
 
-	add  rsp,28h 
+	add  rsp,28h
+	add rsp, 8 
+	movdqu xmm0, xmmword ptr[rsp]
+	add rsp, 8+ 16
 	;Restore the registers back by poping out
 	POPREGS
 	sahf
 	pop rax
+	
 	ret
-
 	
 _pexit endp
 
