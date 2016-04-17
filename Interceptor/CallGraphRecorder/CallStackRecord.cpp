@@ -17,6 +17,11 @@ bool CallStackRecord::operator ==(const CallStackRecord &_record)const {
 		m_function_file_data == _record.m_function_file_data;
 }
 
+bool CallStackRecord::fn_equal(const CallStackRecord &_record)const {
+	return (m_function == _record.m_function) &&
+		m_function_file_data == _record.m_function_file_data;
+}
+
 string_id CallStackRecord::get_function_name() const {
 	return m_function;
 }

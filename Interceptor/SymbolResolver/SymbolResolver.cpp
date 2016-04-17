@@ -114,6 +114,70 @@ bool get_sym_name(HANDLE _handle, void *_pa, std::string &_func_name) {
 	}
 	return false;
 }
+std::vector<Module_native> modules;
+std::vector<Symbol_native> symbols_data;
+BOOL CALLBACK EnumSymProc(
+	PSYMBOL_INFO pSymInfo,
+	ULONG SymbolSize,
+	PVOID UserContext) {
+	UNREFERENCED_PARAMETER(UserContext);
+	auto symbol_name = std::string(pSymInfo->Name);
+	
+	symbols_data.emplace_back(Symbol_native(symbol_name,pSymInfo->Address,pSymInfo->Size ));
+
+	return TRUE;
+}
+
+BOOL CALLBACK EnumModules(
+	PCSTR  ModuleName,
+	DWORD64 BaseOfDll,
+	PVOID   UserContext) {
+	UNREFERENCED_PARAMETER(UserContext);
+	modules.emplace_back(Module_native(std::string(ModuleName), BaseOfDll));
+	return TRUE;
+}
+
+BOOL CALLBACK EnumModules(
+	PCTSTR  ModuleName,
+	DWORD64 BaseOfDll,
+	PVOID   UserContext) {
+	UNREFERENCED_PARAMETER(UserContext);
+	modules.emplace_back(Module_native(std::string((LPCSTR)ModuleName), BaseOfDll));
+	return TRUE;
+}
+
+void SymbolResolver::load_modules() {
+	modules.clear();
+	Log("Loading all module names...");
+	if (SymEnumerateModules64(m_current_process, EnumModules, NULL)) {
+		// SymEnumerateModules64 returned success
+	}
+	else {
+		// SymEnumerateModules64 failed
+		auto error = GetLastError();
+	}
+}
+
+void SymbolResolver::load_all_symbols(std::vector<Symbol_native> &_symbols,
+	std::vector<Module_native> &_modules) {
+	load_modules();
+	_modules.swap(modules);
+	char *Mask = "*";
+	symbols_data.clear();
+	Log("Loading all symbol names...");
+	for (auto &m : _modules) {
+		auto BaseOfDll = m.p_base_address;
+		if (SymEnumSymbols(m_current_process,     // Process handle from SymInitialize.
+			BaseOfDll,   // Base address of module.
+			Mask,        // Name of symbols to match.
+			EnumSymProc, // Symbol handler procedure.
+			NULL))       // User context.
+		{
+			// SymEnumSymbols succeeded
+		}
+	}
+	_symbols.swap(symbols_data);
+}
 
 std::string SymbolResolver::get_function_file_from_symbols_library(void *_pa) {
 	std::string file_name = "";

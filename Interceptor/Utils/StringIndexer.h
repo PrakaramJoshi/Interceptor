@@ -2,7 +2,7 @@
 #include <map>
 #include <string>
 #include <map>
-//#define _STRING_INDEXER_SHOW_STRING
+#define _STRING_INDEXER_SHOW_STRING
 namespace Interceptor {
 #ifdef _STRING_INDEXER_SHOW_STRING
 	using string_id = std::string;

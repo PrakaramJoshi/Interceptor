@@ -7,14 +7,14 @@ namespace Interceptor {
 								CALL_DEPENDENCY_FUNCTION
 									,TOTAL_INTERCEPTOR_MODES };
 
-	enum RecordMode		{	REALTIME,	LAZY,	NOT_RECORDING, TOTAL_RECORD_MODES };
+	enum RecordMode		{	REALTIME,	LAZY,	NOT_RECORDING,PRELOAD_FUNCTIONS, TOTAL_RECORD_MODES };
 
 	enum NamesNormalization { PURE, NORMALIZED, TOTAL_FUNCTION_NAMES };
 
 	const std::string InterceptorModeStr[InterceptorMode::TOTAL_INTERCEPTOR_MODES] = { "IMMEDIATE_PRINT", "CALL_DIAGRAM_FUNCTION" ,"CALL_DIAGRAM_FILES",
 																					"CALL_DEPENDENCY_FUNCTION" };
 
-	const std::string RecordModeStr[RecordMode::TOTAL_RECORD_MODES] = { "REALTIME", "LAZY","NOT_RECORDING" };
+	const std::string RecordModeStr[RecordMode::TOTAL_RECORD_MODES] = { "REALTIME", "LAZY","NOT_RECORDING","PRELOAD_FUNCTIONS" };
 
 	const std::string NamesNormalizationStr[NamesNormalization::TOTAL_FUNCTION_NAMES] = { "PURE","NORMALIZED" };
 

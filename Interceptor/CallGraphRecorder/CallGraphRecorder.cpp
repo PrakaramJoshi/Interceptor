@@ -23,6 +23,13 @@ Interceptor::CallGraphRecorder::~CallGraphRecorder() {
 	UniqueGuard guard_lazy_record_lock(m_lazy_record_lock);
 }
 
+void CallGraphRecorder::init_symbol_db(SymbolResolver &_symbol_resolver,
+	InterceptorConfiguration &_config) {
+	m_symbol_db.init(_symbol_resolver,
+		m_string_indexer,
+		_config);
+}
+
 void CallGraphRecorder::set_record_type(RecordType _mode) {
 	m_mode = _mode;
 }
@@ -35,15 +42,14 @@ void CallGraphRecorder::record(const std::string &_function_name,
 	record(_function_name, _function_file_path, thread_id, _call_status);
 }
 
-void CallGraphRecorder::record(const std::string &_function_name,
-	const std::string &_function_file_path,
+void CallGraphRecorder::record_compression(const string_id &_function_name,
+	const string_id &_function_file_path,
 	const std::thread::id &_thread_id,
 	CALL_STATUS _call_status) {
 
 	UniqueGuard guard_lock(m_lock);
-
-	auto fn_id = m_string_indexer.record(_function_name);
-	auto fn_file_id = m_string_indexer.record(_function_file_path);
+	auto fn_id = _function_name;
+	auto fn_file_id = _function_file_path;
 	auto iter = m_call_stack_records.find(_thread_id);
 	if (iter != m_call_stack_records.end()) {
 		if (!(*iter).second.empty()) {
@@ -53,9 +59,47 @@ void CallGraphRecorder::record(const std::string &_function_name,
 				last_record.second = last_record.second + 1;
 				return;
 			}
+			if (_call_status == CALL_STATUS::CALL_OUT) {
+				if ((*iter).second.size() >= 3) {
+					// last record check for IN
+					if (last_record.first.fn_equal(call_record) && last_record.first.get_call_status() == CALL_STATUS::CALL_IN) {
+						auto iterback = (*iter).second.rbegin();
+						iterback++;
+						//second last record check for OUT
+						if ((*iterback).first.fn_equal(call_record) && (*iterback).first.get_call_status() == CALL_STATUS::CALL_OUT) {
+							iterback++;
+							//third last record check for IN
+							if ((*iterback).first.fn_equal(call_record) && (*iterback).first.get_call_status() == CALL_STATUS::CALL_IN) {
+								// found Fn in ->Fn Out -> Fn in ->Fn out pattern
+								(*iterback).second = (*iterback).second + (*iter).second.back().second;
+								(*iter).second.pop_back();
+								(*iter).second.back().second = (*iter).second.back().second + 1;
+								return;
+							}
+						}
+					}
+				}
+
+			}
 		}
 	}
-	m_call_stack_records[_thread_id].emplace_back(std::make_pair(CallStackRecord(fn_id, fn_file_id, _call_status),1));
+	m_call_stack_records[_thread_id].emplace_back(std::make_pair(CallStackRecord(fn_id, fn_file_id, _call_status), 1));
+}
+void CallGraphRecorder::record(const std::string &_function_name,
+	const std::string &_function_file_path,
+	const std::thread::id &_thread_id,
+	CALL_STATUS _call_status) {
+
+	string_id fn_id;
+	string_id fn_file_id; 
+	{
+		UniqueGuard guard_lock(m_lock);
+
+		fn_id = m_string_indexer.record(_function_name);
+		fn_file_id = m_string_indexer.record(_function_file_path);
+	}
+	
+	record_compression(fn_id, fn_file_id, _thread_id, _call_status);
 }
 
 void CallGraphRecorder::record_now(void *_pa,
@@ -70,6 +114,18 @@ void CallGraphRecorder::record_now(void *_pa,
 		fn_name = Interceptor_Internal::get().get_function_name_internal(_pa);
 	}
 	record(fn_name, fn_file_name, thread_id, _call_status);
+}
+
+void CallGraphRecorder::record_preloaded(void *_pa,
+	CALL_STATUS _call_status) {
+	auto thread_id = std::this_thread::get_id();
+	auto fn = m_symbol_db.get_symbol_id(_pa,
+		Interceptor_Internal::get().symbol_resolver(),
+		m_string_indexer,
+		Interceptor_Internal::get().interceptor_configuration());
+
+	auto fn_file_id = m_string_indexer.record("");
+	record_compression(fn, fn_file_id, thread_id, _call_status);
 }
 
 void CallGraphRecorder::record_lazy(void *_pa,
@@ -104,9 +160,32 @@ void Interceptor::CallGraphRecorder::print() {
 
 }
 
+void check_call_stack(const std::vector<std::pair<CallStackRecord, std::size_t> > &_call_stack) {
+	std::map<string_id, int> counts;
+	for (auto &call : _call_stack) {
+		auto fn_name = call.first.get_function_name();
+		auto iter = counts.find(fn_name);
+		if (iter == counts.end())
+			counts[fn_name] = 0;
+		if (call.first.get_call_status() == CALL_STATUS::CALL_IN) {
+			counts[fn_name] = counts[fn_name] + call.second;
+		}
+		else {
+			counts[fn_name] = counts[fn_name] - call.second;
+		}
+	}
+	for (auto &c : counts) {
+		if (c.second != 0) {
+			std::cout << c.first << " " << c.second << std::endl;
+		}
+	}
+}
+
 void get_call_chart(const std::vector<std::pair<CallStackRecord,std::size_t> > &_call_stack,
 	CALL_GRAPH &_call_graph,
 	const RecordType _mode) {
+//	check_call_stack(_call_stack);
+
 	if (_call_stack.empty())
 		return;
 

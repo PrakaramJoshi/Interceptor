@@ -186,7 +186,9 @@
     <ClInclude Include="CallGraphRecorder\CallGraphRecorder.h" />
     <ClInclude Include="CallGraphRecorder\CallStackLazyRecord.h" />
     <ClInclude Include="CallGraphRecorder\CallStackRecord.h" />
-    <ClInclude Include="CallGraphRecorder\StringIndexer.h" />
+    <ClInclude Include="SymbolResolver\SymbolStructures.h" />
+    <ClInclude Include="Utils\IdGen.h" />
+    <ClInclude Include="Utils\StringIndexer.h" />
     <ClInclude Include="FunctionDepth.h" />
     <ClInclude Include="Hook.h" />
     <ClInclude Include="Interceptor.h" />
@@ -194,6 +196,7 @@
     <ClInclude Include="Interceptor_Internal.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="ConfigurationLoader.h" />
+    <ClInclude Include="SymbolResolver\SymbolDB.h" />
     <ClInclude Include="SymbolResolver\SymbolResolver.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Utils\BlockingQueue.h" />
@@ -205,7 +208,7 @@
   <ItemGroup>
     <ClCompile Include="CallGraphRecorder\CallGraphRecorder.cpp" />
     <ClCompile Include="CallGraphRecorder\CallStackRecord.cpp" />
-    <ClCompile Include="CallGraphRecorder\StringIndexer.cpp" />
+    <ClCompile Include="Utils\StringIndexer.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -227,6 +230,7 @@
     <ClCompile Include="Interceptor_internal.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="ConfigurationLoader.cpp" />
+    <ClCompile Include="SymbolResolver\SymbolDB.cpp" />
     <ClCompile Include="SymbolResolver\SymbolResolver.cpp" />
     <ClCompile Include="Utils\InterceptorUtils.cpp" />
   </ItemGroup>

@@ -44,6 +44,8 @@ namespace Interceptor {
 
 		AceLogger::register_logger_helper *m_logger;
 
+		std::string get_most_relevant_module_name(const std::string &_fn_name);
+
 		std::string get_function_name_internal(void *_pa);
 
 		std::string get_function_file_internal(void *_pa);
@@ -61,6 +63,10 @@ namespace Interceptor {
 		void on_exit_internal(void *_pa);
 
 		void print_to_console(const std::size_t &_stack_depth, const std::string &_function_name, bool _in);
+
+		SymbolResolver& symbol_resolver() { return m_symbol_resolver; };
+
+		InterceptorConfiguration& interceptor_configuration() { return m_configuration; };
 
 		static Interceptor_Internal& get();
 

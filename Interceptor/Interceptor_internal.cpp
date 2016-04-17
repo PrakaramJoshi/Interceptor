@@ -17,10 +17,16 @@ Interceptor_Internal::Interceptor_Internal() {
 	if (m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FILES || 
 		m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FUNCTION||
 		m_configuration.p_mode == InterceptorMode::CALL_DEPENDENCY_FUNCTION) {
-		if (!(m_configuration.p_record_mode == RecordMode::LAZY || m_configuration.p_record_mode == RecordMode::REALTIME)) {
+		if (!(m_configuration.p_record_mode == RecordMode::LAZY || m_configuration.p_record_mode == RecordMode::REALTIME ||
+			m_configuration.p_record_mode == RecordMode::PRELOAD_FUNCTIONS)) {
 			std::cout << "Interceptor mode set to call diagram, but no recording specified, using default mode as Lazy" << std::endl;
 			m_configuration.p_record_mode = RecordMode::LAZY;
 		}
+	}
+	if (m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FILES && m_configuration.p_record_mode == RecordMode::PRELOAD_FUNCTIONS) {
+		std::cout << "Preload functions is not available for files, changing to lazy mode" << std::endl;
+		Log("Preload functions is not available for files, changing to lazy mode");
+		m_configuration.p_record_mode = RecordMode::LAZY;
 	}
 	RecordType record_type = RecordType::NONE;
 	if (m_configuration.p_mode == InterceptorMode::CALL_DIAGRAM_FILES)
@@ -30,6 +36,9 @@ Interceptor_Internal::Interceptor_Internal() {
 		record_type = RecordType::FUNCTION;
 	}
 	m_call_graph_recorder.set_record_type(record_type);
+	if (m_configuration.p_mode == RecordMode::PRELOAD_FUNCTIONS) {
+		m_call_graph_recorder.init_symbol_db(m_symbol_resolver,m_configuration);
+	}
 }
 
 Interceptor_Internal::~Interceptor_Internal() {
@@ -92,6 +101,9 @@ void Interceptor_Internal::on_enter_call_diagram_mode(void *_pa) {
 	else if (m_configuration.p_record_mode == RecordMode::REALTIME) {
 		m_call_graph_recorder.record_now(_pa, CALL_STATUS::CALL_IN);
 	}
+	else if (m_configuration.p_record_mode == RecordMode::PRELOAD_FUNCTIONS) {
+		m_call_graph_recorder.record_preloaded(_pa, CALL_STATUS::CALL_IN);
+	}
 }
 
 void Interceptor_Internal::on_exit_call_diagram_mode(void *_pa) {
@@ -101,6 +113,9 @@ void Interceptor_Internal::on_exit_call_diagram_mode(void *_pa) {
 	}
 	else if (m_configuration.p_record_mode == RecordMode::REALTIME) {
 		m_call_graph_recorder.record_now(_pa, CALL_STATUS::CALL_OUT);
+	}
+	else if (m_configuration.p_record_mode == RecordMode::PRELOAD_FUNCTIONS) {
+		m_call_graph_recorder.record_preloaded(_pa, CALL_STATUS::CALL_OUT);
 	}
 
 }
@@ -169,6 +184,16 @@ void Interceptor_Internal::print_to_console(const std::size_t &_stack_depth,
 				out_str << std::endl;
 }
 
+std::string Interceptor_Internal::get_most_relevant_module_name(const std::string &_fn_name) {
+	auto index = _fn_name.find_last_of("::");
+	if (index == std::string::npos)
+		return _fn_name;
+	auto m = _fn_name.substr(0, index-1);
+	index = m.find_last_of("::");
+	if (index == std::string::npos)
+		return m;
+	return m.substr(index + 1);
+}
 
 std::string Interceptor_Internal::get_function_name_internal(void *_pa) {
 	std::string fn = "";
@@ -177,6 +202,7 @@ std::string Interceptor_Internal::get_function_name_internal(void *_pa) {
 	if (iter == m_function_name_cache.end()) {
 		fn = m_symbol_resolver.get_function_name_from_symbols_library(_pa);
 		fn = m_configuration.get_function_normal_name(fn);
+		fn = get_most_relevant_module_name(fn);
 		m_function_name_cache[_pa] = fn;
 	}
 	else {

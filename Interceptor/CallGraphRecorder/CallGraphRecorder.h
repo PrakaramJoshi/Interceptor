@@ -9,6 +9,7 @@
 #include "StringIndexer.h"
 #include "InterceptorConfig.h"
 #include "NonRecursiveLock.h"
+#include "SymbolDB.h"
 #include <atomic>
 namespace Interceptor {
 	typedef std::map<string_id, std::map<string_id, std::size_t> > CALL_GRAPH;
@@ -26,6 +27,8 @@ namespace Interceptor {
 		std::atomic<bool >m_mutex_locked;
 
 		RecordType m_mode;
+
+		SymbolDB m_symbol_db;
 
 		mutable StringIndexer m_string_indexer;
 
@@ -54,10 +57,18 @@ namespace Interceptor {
 			const std::thread::id &_thread_id,
 			CALL_STATUS _call_status = CALL_STATUS::CALL_IN);
 
+		void record_compression(const string_id &_function_name,
+			const string_id &_function_file_path,
+			const std::thread::id &_thread_id,
+			CALL_STATUS _call_status = CALL_STATUS::CALL_IN);
+
 	public:
 		CallGraphRecorder();
 
 		~CallGraphRecorder();
+
+		void init_symbol_db(SymbolResolver &_symbol_resolver,
+			InterceptorConfiguration &_config);
 
 		void set_record_type(RecordType _mode);
 
@@ -65,6 +76,9 @@ namespace Interceptor {
 			CALL_STATUS _call_status = CALL_STATUS::CALL_IN);
 
 		void record_now(void *_pa,
+			CALL_STATUS _call_status = CALL_STATUS::CALL_IN);
+
+		void record_preloaded(void *_pa,
 			CALL_STATUS _call_status = CALL_STATUS::CALL_IN);
 
 		void print();

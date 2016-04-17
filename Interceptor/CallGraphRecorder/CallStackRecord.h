@@ -18,6 +18,8 @@ namespace Interceptor {
 
 		bool operator ==(const CallStackRecord &_record)const;
 
+		bool fn_equal(const CallStackRecord &_record)const;
+
 		string_id get_function_name()const;
 
 		string_id get_file_data()const;

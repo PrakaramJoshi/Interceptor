@@ -48,9 +48,6 @@
     <ClInclude Include="CallGraphRecorder\CallGraphHTML.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CallGraphRecorder\StringIndexer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CallGraphRecorder\CallStackLazyRecord.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -73,6 +70,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Utils\BlockingQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SymbolResolver\SymbolDB.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\StringIndexer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\IdGen.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SymbolResolver\SymbolStructures.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -98,9 +107,6 @@
     <ClCompile Include="CallGraphRecorder\CallStackRecord.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CallGraphRecorder\StringIndexer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="SymbolResolver\SymbolResolver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -108,6 +114,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Utils\InterceptorUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SymbolResolver\SymbolDB.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\StringIndexer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
