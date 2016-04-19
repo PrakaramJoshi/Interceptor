@@ -3,6 +3,22 @@ namespace Interceptor {
 	const static std::string html_data_key = "$CALL_GRAPH_DATA$";
 	const static std::string html_package_names_key = "$PACKAGE_NAME$";
 	const static std::string html_dependency_matrix_key = "$DEPENDENCY_MATRIX$";
+	const static std::string html_dependency_wheel_placeholder_key = "$PLACEHOLDER$";
+	const static std::string html_dependency_wheel_chart_key = "$CHART$";
+	const static std::string html_dependency_wheel_data_key = "$DATA$";
+	const static std::string html_dependency_wheel_all_charts_key = "$ALL_CHARTS$";
+	const static std::string html_dependency_wheel_char_placeholder_key = "$CHART_PLACEHOLDER$";
+	const static std::string html_dependency_wheel_thread_key = "$THREAD$";
+	const static std::string html_dependency_wheel_colspan_key = "$COLSPAN$";
+	const static std::string html_dependency_wheel_chart_script = R"( var $CHART$ = d3.chart.dependencyWheel();
+  var $DATA$ = {
+	packageNames: [$PACKAGE_NAME$],
+	matrix : [$DEPENDENCY_MATRIX$]
+  };
+  d3.select('#$CHART_PLACEHOLDER$')
+	  .datum($DATA$)
+	  .call($CHART$); )";
+	const static std::string html_dependency_wheel_chart_placholder = R"( <td id="$CHART_PLACEHOLDER$" colspan="$COLSPAN$">$THREAD$</td>)";
 	const static std::string html_call_graph_force_diagram = R"(<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
 <html lang="en">
 	<head>
@@ -178,30 +194,43 @@ force.on("tick", function() {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="utf-8">
   <style>
-
-#chart_placeholder {
+#chart_placeholder0 {
   text-align: center;
   margin-bottom: 20px;
 }
-
 .dependencyWheel {
   font: 20px sans-serif;
 }
-
+table#t01 tr:nth-child(even) {
+    background-color: #aaa;
+}
+table#t01 tr:nth-child(odd) {
+    background-color: #fff;
+}
+table#t01 th {
+    color: white;
+    background-color: black;
+} 
+table, th, td {
+    border: 2px solid black;
+    border-collapse: collapse;
+}
 </style>
 </head>
 <body>
   <div class="container">
-  <div id="chart_placeholder"></div>
+<table id="t01" style="width:100%">
+  $PLACEHOLDER$
+</table>
 </div>
   <script type="text/javascript" src="http://mbostock.github.com/d3/d3.js"></script>
   <script>
     d3.chart = d3.chart || {};
     d3.chart.dependencyWheel = function(options) {
 
-    var width = 1500;
-    var margin = 550;
-    var padding = 0.02;
+    var width = 1000;
+    var margin = 150;
+    var padding = 0.04;
 
     function chart(selection) {
       selection.each(function(data) {
@@ -344,15 +373,8 @@ force.on("tick", function() {
 
 	return chart;
   };
-
-  var chart = d3.chart.dependencyWheel();
-  var data = {
-	packageNames: [$PACKAGE_NAME$],
-	matrix : [$DEPENDENCY_MATRIX$]
-  };
-  d3.select('#chart_placeholder')
-	  .datum(data)
-	  .call(chart);
+	
+  $ALL_CHARTS$
 
   </script>
 	  </body>

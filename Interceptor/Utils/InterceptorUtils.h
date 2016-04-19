@@ -1,4 +1,5 @@
 #pragma once
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -58,6 +59,13 @@ namespace Interceptor {
 		static void trim_trailing_white_space(std::string &_str);
 
 		static void trim_leading_trailing_white_space(std::string &_str);
+
+		template<typename T>
+		static std::string get_string(const T& _obj) {
+			std::stringstream str;
+			str << _obj;
+			return str.str();
+		}
 	};
 }
 #pragma once

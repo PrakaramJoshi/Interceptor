@@ -42,6 +42,17 @@ namespace Interceptor {
 
 		void create_force_layout_chart(const CALL_GRAPH &_call_graph);
 
+		void create_dependency_graph_per_thread(std::string &_data_script,
+			std::string &_rows_placeholder);
+
+		void create_dependency_graph_for_call_graph(
+			const CALL_GRAPH &_call_graph,
+			const std::string &_cell_title,
+			const std::size_t &_chart_number,
+			const std::size_t &_colspan,
+			std::string &_data_script,
+			std::string &_rows_placeholder);
+
 		void create_dependency_graph(const CALL_GRAPH &_call_graph);
 
 		void populate_lazy_data();
