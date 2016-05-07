@@ -184,6 +184,7 @@
   <ItemGroup>
     <ClInclude Include="CallGraphRecorder\CallGraphHTML.h" />
     <ClInclude Include="CallGraphRecorder\CallGraphRecorder.h" />
+    <ClInclude Include="CallGraphRecorder\CallGraphTimeline.h" />
     <ClInclude Include="CallGraphRecorder\CallStackLazyRecord.h" />
     <ClInclude Include="CallGraphRecorder\CallStackRecord.h" />
     <ClInclude Include="SymbolResolver\SymbolStructures.h" />
@@ -207,6 +208,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CallGraphRecorder\CallGraphRecorder.cpp" />
+    <ClCompile Include="CallGraphRecorder\CallGraphTimeline.cpp" />
     <ClCompile Include="CallGraphRecorder\CallStackRecord.cpp" />
     <ClCompile Include="Utils\StringIndexer.cpp" />
     <ClCompile Include="dllmain.cpp">

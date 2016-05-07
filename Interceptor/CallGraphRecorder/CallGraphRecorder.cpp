@@ -1,5 +1,6 @@
 #include "CallGraphRecorder.h"
 #include "CallGraphHTML.h"
+#include "CallGraphTimeline.h"
 #include "InterceptorUtils.h"
 #include "Interceptor_Internal.h"
 #include "Logger.h"
@@ -120,99 +121,12 @@ void Interceptor::CallGraphRecorder::print() {
 
 }
 
-void check_call_stack(const std::vector<std::pair<CallStackRecord, std::size_t> > &_call_stack) {
-	std::map<string_id, int64_t> counts;
-	for (auto &call : _call_stack) {
-		auto fn_name = call.first.get_function_name();
-		auto iter = counts.find(fn_name);
-		if (iter == counts.end())
-			counts[fn_name] = 0;
-		if (call.first.get_call_status() == CALL_STATUS::CALL_IN) {
-			counts[fn_name] = counts[fn_name] + call.second;
-		}
-		else {
-			counts[fn_name] = counts[fn_name] - call.second;
-		}
-	}
-	for (auto &c : counts) {
-		if (c.second != 0) {
-			std::cout << c.first << " " << c.second << std::endl;
-		}
-	}
-}
-
-void get_call_chart(const std::vector<std::pair<CallStackRecord,std::size_t> > &_call_stack,
-	CALL_GRAPH &_call_graph,
-	const RecordType _mode) {
-//	check_call_stack(_call_stack);
-
-	if (_call_stack.empty())
-		return;
-
-	std::stack<string_id> call_stack;
-	
-	for (auto &call_record : _call_stack) {
-		auto count = call_record.second;
-		while (count > 0) {
-			count--;
-			if (call_record.first.get_call_status() == CALL_STATUS::CALL_IN) {
-				string_id caller ;
-				bool caller_found = false;
-				if (!call_stack.empty()) {
-					caller = call_stack.top();
-					caller_found = true;
-				}
-
-				Interceptor::string_id callee;
-				if (_mode == Interceptor::RecordType::FILE) {
-					callee = call_record.first.get_file_data();
-				}
-				else if (_mode == Interceptor::RecordType::FUNCTION) {
-					callee = call_record.first.get_function_name();
-				}
-
-				call_stack.push(callee);
-				if (caller_found) {
-					auto iter = _call_graph.find(caller);
-					if (iter == _call_graph.end()) {
-						_call_graph[caller][callee] = 1;
-					}
-					else {
-						auto callee_iter = iter->second.find(callee);
-						if (callee_iter == iter->second.end()) {
-							iter->second[callee] = 1;
-						}
-						else {
-							++(callee_iter->second);
-						}
-					}
-				}
-
-			}
-			else {
-				if (!call_stack.empty())
-					call_stack.pop();
-			}
-		}
-		
-	}
-}
-
-void AddCallData(std::string& str, const std::string& oldStr, const std::string& newStr) {
-	size_t pos = 0;
-	while ((pos = str.find(oldStr, pos)) != std::string::npos) {
-		str.replace(pos, oldStr.length(), newStr);
-		pos += newStr.length();
-	}
-
-}
-
 void CallGraphRecorder::create_force_layout_chart(const CALL_GRAPH &_call_graph) {
 	Log("creating force layout chart...");
 	std::string html_data = get_header_force_layout(_call_graph) + get_connectivity_force_layout(_call_graph);
 	auto str = Interceptor::html_call_graph_force_diagram;
 	html_data = R"(")" + html_data + R"(")";
-	AddCallData(str, html_data_key, html_data);
+	Utils::replace_all(str, html_data_key, html_data);
 	std::ofstream ofs;
 	auto directory = Utils::get_current_directory();
 	ofs.open(directory + "\\call_graph_force_view.html");
@@ -301,16 +215,16 @@ void CallGraphRecorder::create_dependency_graph_for_call_graph(
 	std::string chart_placholder_name = "chart_placeholder" + chart_number_str;
 	std::string row_placholders = Interceptor::html_dependency_wheel_chart_placholder;
 	std::string data_script = Interceptor::html_dependency_wheel_chart_script;
-	AddCallData(data_script, html_package_names_key, package_names);
-	AddCallData(data_script, html_dependency_matrix_key, matrix);
-	AddCallData(data_script, html_dependency_wheel_data_key, data_name);
-	AddCallData(data_script, html_dependency_wheel_chart_key, chart_name);
-	AddCallData(data_script, html_dependency_wheel_char_placeholder_key, chart_placholder_name);
+	Utils::replace_all(data_script, html_package_names_key, package_names);
+	Utils::replace_all(data_script, html_dependency_matrix_key, matrix);
+	Utils::replace_all(data_script, html_dependency_wheel_data_key, data_name);
+	Utils::replace_all(data_script, html_dependency_wheel_chart_key, chart_name);
+	Utils::replace_all(data_script, html_dependency_wheel_char_placeholder_key, chart_placholder_name);
 	_data_script.append("\n");
 	_data_script = _data_script + data_script;
-	AddCallData(row_placholders, html_dependency_wheel_thread_key, _cell_title);
-	AddCallData(row_placholders, html_dependency_wheel_char_placeholder_key, chart_placholder_name);
-	AddCallData(row_placholders, html_dependency_wheel_colspan_key, Utils::get_string(_colspan));
+	Utils::replace_all(row_placholders, html_dependency_wheel_thread_key, _cell_title);
+	Utils::replace_all(row_placholders, html_dependency_wheel_char_placeholder_key, chart_placholder_name);
+	Utils::replace_all(row_placholders, html_dependency_wheel_colspan_key, Utils::get_string(_colspan));
 	_rows_placeholder.append("\n");
 
 	if (_colspan == 2) {
@@ -331,7 +245,7 @@ void CallGraphRecorder::create_dependency_graph_per_thread(std::string &_data_sc
 	for (auto &call_stacks : m_call_stack_records) {
 		Log("creating call graph...");
 		CALL_GRAPH call_graph;
-		get_call_chart(call_stacks.second, call_graph, m_mode);
+		CallStackUtils::get_call_chart(call_stacks.second, call_graph, m_mode);
 		create_dependency_graph_for_call_graph(call_graph,
 											"Thread Id: "+Utils::get_string(call_stacks.first), 
 											chart_number,
@@ -364,13 +278,21 @@ void CallGraphRecorder::create_dependency_graph(const CALL_GRAPH &_call_graph) {
 	
 	
 	auto str = Interceptor::html_call_dependency;
-	AddCallData(str, html_dependency_wheel_placeholder_key, row_all_placeholders);
-	AddCallData(str, html_dependency_wheel_all_charts_key, all_data_scripts);
+	Utils::replace_all(str, html_dependency_wheel_placeholder_key, row_all_placeholders);
+	Utils::replace_all(str, html_dependency_wheel_all_charts_key, all_data_scripts);
 	std::ofstream ofs;
 	auto directory = Utils::get_current_directory();
 	ofs.open(directory + "\\call_dependency_wheel.html");
 	std::cout << "Saving the file at : " << (directory + "\\call_dependency_wheel.html") << std::endl;
 	ofs << str;
+}
+
+
+void Interceptor::CallGraphRecorder::create_timeline_graph() {
+	
+	CallGraphTimeline call_graph_timeline(m_call_stack_records, m_mode);
+	auto directory = Utils::get_current_directory();
+	call_graph_timeline.create_graph(directory + "\\call_graph_timeline.html");
 }
 
 void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
@@ -384,20 +306,27 @@ void Interceptor::CallGraphRecorder::create_call_chart(InterceptorMode _mode) {
 	
 	UniqueGuard guard_lock(m_lock);
 	
-	
-	Log("creating call graph...");
-	CALL_GRAPH call_graph;
-	for (auto &call_stacks : m_call_stack_records) {
-		get_call_chart(call_stacks.second, call_graph, m_mode);
-	}
-	
 	switch (_mode) {
-		case Interceptor::FORCE_DIAGRAM:
+		case Interceptor::FORCE_DIAGRAM: {
+			Log("creating call graph...");
+			CALL_GRAPH call_graph;
+			for (auto &call_stacks : m_call_stack_records) {
+				CallStackUtils::get_call_chart(call_stacks.second, call_graph, m_mode);
+			}
 			create_force_layout_chart(call_graph);
+		}
 			break;
-		case Interceptor::DEPENDENCY_WHEEL:
+		case Interceptor::DEPENDENCY_WHEEL: {
+			Log("creating call graph...");
+			CALL_GRAPH call_graph;
+			for (auto &call_stacks : m_call_stack_records) {
+				CallStackUtils::get_call_chart(call_stacks.second, call_graph, m_mode);
+			}
 			create_dependency_graph(call_graph);
+		}
 			break;
+		case Interceptor::TIMELINE:
+			create_timeline_graph();
 		default:
 			break;
 	}

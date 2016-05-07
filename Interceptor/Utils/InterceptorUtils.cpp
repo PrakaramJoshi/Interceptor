@@ -87,6 +87,17 @@ std::string Utils::get_lower(const std::string &_str) {
 	return str;
 }
 
+void Utils::replace_all(std::string& _str,
+						const std::string& _oldStr,
+						const std::string& _newStr) {
+	size_t pos = 0;
+	while ((pos = _str.find(_oldStr, pos)) != std::string::npos) {
+		_str.replace(pos, _oldStr.length(), _newStr);
+		pos += _newStr.length();
+	}
+
+}
+
 bool Utils::read_key_val_file(const std::string &_file_path, 
 							std::vector<KeyVal> &_keyVals,
 							const char _delimiter,
@@ -107,7 +118,6 @@ bool Utils::read_key_val_file(const std::string &_file_path,
 	}
 	return false;
 }
-
 
 KeyVal::KeyVal(const std::string &_key,
 	const std::string &_val) {

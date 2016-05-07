@@ -60,6 +60,10 @@ namespace Interceptor {
 
 		static void trim_leading_trailing_white_space(std::string &_str);
 
+		static void replace_all(std::string& _str, 
+								const std::string& _oldStr, 
+								const std::string& _newStr);
+
 		template<typename T>
 		static std::string get_string(const T& _obj) {
 			std::stringstream str;

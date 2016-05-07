@@ -84,6 +84,9 @@
     <ClInclude Include="SymbolResolver\SymbolStructures.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CallGraphRecorder\CallGraphTimeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -120,6 +123,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Utils\StringIndexer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CallGraphRecorder\CallGraphTimeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -12,23 +12,25 @@
 #include "SymbolDB.h"
 #include <atomic>
 namespace Interceptor {
-	typedef std::map<string_id, std::map<string_id, std::size_t> > CALL_GRAPH;
 	
 	class CallGraphRecorder {
 		
-		std::map<std::thread::id,std::vector<std::pair<CallStackRecord,std::size_t>  > >	m_call_stack_records;
+		// maps of thread id to the collection of calls stack records
+		// if the call is Fn in ->Fn Out -> Fn in ->Fn out pattern then the count(second parameter in the pair 
+		// is incremented
+		CallStackPerThread													m_call_stack_records;
 
-		std::map<std::thread::id, std::vector<CallStackLazyRecord> >						m_lazy_records;
+		std::map<std::thread::id, std::vector<CallStackLazyRecord> >		m_lazy_records;
 
-		std::set<string_id>																	m_suppressed_ids;
+		std::set<string_id>													m_suppressed_ids;
 
-		NonRecursiveLock																	m_lock;
+		NonRecursiveLock													m_lock;
 
-		NonRecursiveLock																	m_lazy_record_lock;
+		NonRecursiveLock													m_lazy_record_lock;
 
-		std::atomic<bool>																	m_mutex_locked;
+		std::atomic<bool>													m_mutex_locked;
 
-		RecordType																			m_mode;
+		RecordType															m_mode;
 
 		std::string get_header_force_layout(const CALL_GRAPH &_call_graph)const;
 
@@ -54,6 +56,8 @@ namespace Interceptor {
 			std::string &_rows_placeholder);
 
 		void create_dependency_graph(const CALL_GRAPH &_call_graph);
+
+		void create_timeline_graph();
 
 		void populate_lazy_data();
 		

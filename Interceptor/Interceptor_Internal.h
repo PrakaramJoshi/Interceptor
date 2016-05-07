@@ -1,6 +1,7 @@
 #pragma once
 #include "CallGraphRecorder.h"
 #include "CallStackLazyRecord.h"
+#include "CallGraphTimeline.h"
 #include "FunctionDepth.h"
 #include "InterceptorConfig.h"
 #include "Logger.h"
@@ -73,6 +74,8 @@ namespace Interceptor {
 	public:
 
 		friend class CallGraphRecorder;
+
+		friend class TimelineNode;
 
 		~Interceptor_Internal();
 

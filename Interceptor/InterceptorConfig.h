@@ -4,7 +4,8 @@
 #include <map>
 namespace Interceptor {
 	enum InterceptorMode	{	IMMEDIATE_PRINT,	FORCE_DIAGRAM,	DEPENDENCY_WHEEL
-									,TOTAL_INTERCEPTOR_MODES };
+									, TIMELINE,
+								TOTAL_INTERCEPTOR_MODES };
 
 	enum RecordMode		{	REALTIME,	LAZY,	NOT_RECORDING,PRELOAD_FUNCTIONS, TOTAL_RECORD_MODES };
 
@@ -12,7 +13,8 @@ namespace Interceptor {
 
 	enum RecordType { FUNCTION, FILE, TOTAL_RECORD_TYPES };
 
-	const std::string InterceptorModeStr[InterceptorMode::TOTAL_INTERCEPTOR_MODES] = { "IMMEDIATE_PRINT", "FORCE_DIAGRAM" ,"DEPENDENCY_WHEEL" };
+	const std::string InterceptorModeStr[InterceptorMode::TOTAL_INTERCEPTOR_MODES] = { "IMMEDIATE_PRINT", "FORCE_DIAGRAM" ,"DEPENDENCY_WHEEL",
+																						"TIMELINE"};
 
 	const std::string RecordModeStr[RecordMode::TOTAL_RECORD_MODES] = { "REALTIME", "LAZY","NOT_RECORDING","PRELOAD_FUNCTIONS" };
 

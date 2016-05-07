@@ -15,7 +15,8 @@ Interceptor_Internal::Interceptor_Internal() {
 	ConfigurationLoader configloader;
 	m_configuration = configloader.get_configuration();
 	if (m_configuration.p_mode == InterceptorMode::FORCE_DIAGRAM || 
-		m_configuration.p_mode == InterceptorMode::DEPENDENCY_WHEEL) {
+		m_configuration.p_mode == InterceptorMode::DEPENDENCY_WHEEL||
+		m_configuration.p_mode == InterceptorMode::TIMELINE) {
 		if (!(m_configuration.p_record_mode == RecordMode::LAZY || m_configuration.p_record_mode == RecordMode::REALTIME ||
 			m_configuration.p_record_mode == RecordMode::PRELOAD_FUNCTIONS)) {
 			Log("Interceptor mode set to call diagram, but no recording specified, using default mode as Lazy");
@@ -47,6 +48,7 @@ Interceptor_Internal::~Interceptor_Internal() {
 	switch (m_configuration.p_mode) {
 		case InterceptorMode::IMMEDIATE_PRINT:
 			break;
+		case InterceptorMode::TIMELINE:
 		case InterceptorMode::FORCE_DIAGRAM:
 		case InterceptorMode::DEPENDENCY_WHEEL:
 			m_call_graph_recorder.create_call_chart(m_configuration.p_mode);
@@ -126,7 +128,7 @@ void Interceptor_Internal::on_enter_internal(void *_pa) {
 		case Interceptor::InterceptorMode::IMMEDIATE_PRINT:
 			on_enter_immediate_print_mode(_pa);
 			break;
-
+		case Interceptor::InterceptorMode::TIMELINE:
 		case Interceptor::InterceptorMode::FORCE_DIAGRAM:
 		case Interceptor::InterceptorMode::DEPENDENCY_WHEEL:
 			on_enter_call_diagram_mode(_pa);
@@ -142,7 +144,7 @@ void Interceptor_Internal::on_exit_internal(void *_pa) {
 		case Interceptor::InterceptorMode::IMMEDIATE_PRINT:
 			on_exit_immediate_print_mode(_pa);
 			break;
-
+		case Interceptor::InterceptorMode::TIMELINE:
 		case Interceptor::InterceptorMode::FORCE_DIAGRAM:
 		case Interceptor::InterceptorMode::DEPENDENCY_WHEEL:
 			on_exit_call_diagram_mode(_pa);
