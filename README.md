@@ -13,9 +13,9 @@ Interceptor is a library which helps to generate runtime call diagrams for appli
 <img src="https://github.com/PrakaramJoshi/Interceptor/blob/master/TimelineGraph.PNG"></img>
 </br>
 <p>
-Blue connection show a function on the left called function on the right.</br>
-Red connection show a function on the right called function on the left.</br>
 All the functions are arranged left to right in the order they were first run.</br>
+Blue connection shows a function on the left called function on the right.</br>
+Red connection shows a function on the right called function on the left.</br>
 </p>
 #Usage:</br>
 Link your application with this library (see instructions below on what changes are required in your application). Place the Interceptor.config in the directory where your applications's executable is present. Then run your application. Interceptor will generate the TImeline graph/Call Dependency Graph / or in real time show the function calls. This is for Windows Only.
