@@ -13,6 +13,9 @@ namespace Interceptor {
 		point() {
 			x = 0; y = 0;
 		}
+		void translate_y_by(const int _dy) {
+			y += _dy;
+		}
 	};
 
 	class TimelineNode {
@@ -44,16 +47,20 @@ namespace Interceptor {
 
 		void create_location(int _cemter_x, int _y);
 
+		void translate_y_by(const int _dy);
+
 		int x()const;
 
 		int y()const;
 
 		int width()const;
 
-		bool get_svg(std::ostream *_ofs)const;
+		bool get_svg(std::ostream *_ofs,
+					const std::string &_svg_name)const;
 
 		bool get_connection_svg(const std::map<std::size_t, string_id > &_node_id_to_node_desc,
 								const std::map<string_id, TimelineNode > &_nodes,
+								const std::string &_svg_name,
 								std::ostream *_ofs);
 
 		std::string get_print_str()const;
@@ -72,7 +79,9 @@ namespace Interceptor {
 
 		int									m_start_y;
 
-		void fill_node_locations();
+		std::size_t							m_timeline_id;
+
+		int fill_node_locations();
 
 		bool get_svg(std::ostream *_ofs);
 
