@@ -4,7 +4,10 @@
 Interceptor is a library which helps to generate runtime call diagrams for applications. Using this library you can also see in realtime which functions are being executed at any moment. The purpose to write this was to help a developer understand the dynamics of the application and how various functions/classes interact with each other at runtime. The image below shows the output for the following code snippet when run 
 </br>
 <strong>Code Snippet</strong>
-<img src="https://github.com/PrakaramJoshi/Interceptor/blob/master/CodeSnippet.PNG"><img>
+</br>
+<img src="https://github.com/PrakaramJoshi/Interceptor/blob/master/CodeSnippet.PNG"></img>
+<img src="https://github.com/PrakaramJoshi/Interceptor/blob/master/CodeSnippet2.PNG"></img>
+</br>
 </br>
 <strong>Timeline graph</strong>
 <img src="https://github.com/PrakaramJoshi/Interceptor/blob/master/TimelineGraph.PNG"></img>
